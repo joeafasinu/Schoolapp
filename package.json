@@ -1,0 +1,23 @@
+{
+  "name": "schoolapp",
+  "version": "0.1.0",
+  "description": "Multi-school attendance and results/broadsheet management system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node db/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.13.0",
+    "connect-pg-simple": "^10.0.0",
+    "express-session": "^1.18.0",
+    "bcryptjs": "^2.4.3",
+    "ejs": "^3.1.10",
+    "express-ejs-layouts": "^2.5.1",
+    "method-override": "^3.0.0",
+    "exceljs": "^4.4.0",
+    "dotenv": "^16.4.5",
+    "pdfkit": "^0.15.0"
+  }
+}
