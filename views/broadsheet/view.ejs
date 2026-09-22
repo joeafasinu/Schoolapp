@@ -1,0 +1,44 @@
+<div class="toolbar">
+  <h2><%= klass.name %> — Broadsheet</h2>
+  <div>
+    <span class="badge badge-gold"><%= term.term_name %>, <%= term.session_name %></span>
+    <a href="/broadsheet/<%= klass.id %>/export" class="btn btn-gold btn-sm">Export to Excel</a>
+  </div>
+</div>
+
+<div class="card">
+  <% if (subjects.length === 0) { %>
+    <p class="muted">No subjects have been assigned to this class yet.</p>
+  <% } else { %>
+  <div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Student</th>
+        <% subjects.forEach(s => { %><th><%= s.name %></th><% }) %>
+        <th>Grand Total</th>
+        <th>Average</th>
+        <th>Grade</th>
+        <th>Position</th>
+        <th>Report Card</th>
+      </tr>
+    </thead>
+    <tbody>
+    <% rows.forEach((row, idx) => { %>
+      <tr class="<%= row.position === 1 ? 'rank-1' : '' %>">
+        <td><%= idx + 1 %></td>
+        <td><%= row.fullName %></td>
+        <% row.subjectScores.forEach(ss => { %><td class="text-right"><%= ss.total ?? '—' %></td><% }) %>
+        <td class="text-right"><strong><%= row.grandTotal %></strong></td>
+        <td class="text-right"><%= row.average %></td>
+        <td><span class="badge badge-green"><%= gradeFor(row.average).grade %></span></td>
+        <td class="text-right"><strong><%= row.position %></strong></td>
+        <td><a class="btn btn-sm btn-outline" href="/reportcard/<%= row.studentId %>">View</a></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <% } %>
+</div>

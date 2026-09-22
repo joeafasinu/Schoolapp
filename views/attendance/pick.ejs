@@ -1,0 +1,9 @@
+<h2>Attendance</h2>
+<p class="muted">Choose a class to mark attendance for.</p>
+<div class="card">
+  <ul>
+    <% classes.forEach(c => { %>
+      <li style="margin-bottom:0.5rem;"><a href="/attendance?class_id=<%= c.id %>"><%= c.name %></a></li>
+    <% }) %>
+  </ul>
+</div>

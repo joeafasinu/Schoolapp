@@ -1,0 +1,9 @@
+<h2>Broadsheet</h2>
+<p class="muted">Select a class to view its computed broadsheet.</p>
+<div class="card">
+  <ul>
+    <% classes.forEach(c => { %>
+      <li style="margin-bottom:0.5rem;"><a href="/broadsheet/<%= c.id %>"><%= c.name %></a></li>
+    <% }) %>
+  </ul>
+</div>
