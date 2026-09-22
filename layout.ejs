@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== 'undefined' ? title + ' · SchoolApp' : 'SchoolApp' %></title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <% if (user) { %>
+  <div class="topbar no-print">
+    <div class="topbar-brand">
+      <span class="brand-mark">SA</span> SchoolApp
+      <% if (user.school_name) { %><span class="school-tag"><%= user.school_name %></span><% } %>
+    </div>
+    <nav class="topbar-nav">
+      <a href="/dashboard">Dashboard</a>
+      <% if (user.role === 'school_admin') { %>
+        <a href="/setup/classes">Classes</a>
+        <a href="/setup/subjects">Subjects</a>
+        <a href="/setup/students">Students</a>
+        <a href="/setup/teachers">Teachers</a>
+        <a href="/setup/terms">Terms</a>
+        <a href="/broadsheet">Broadsheet</a>
+      <% } %>
+      <% if (user.role === 'teacher') { %>
+        <a href="/scores">Enter Scores</a>
+        <a href="/attendance">Attendance</a>
+      <% } %>
+      <% if (user.role === 'platform_admin') { %>
+        <a href="/platform">Schools</a>
+      <% } %>
+      <span class="topbar-user"><%= user.name %> (<%= user.role.replace('_',' ') %>)</span>
+      <a href="/logout" class="logout-link">Log out</a>
+    </nav>
+  </div>
+  <% } %>
+
+  <main class="page-wrap">
+    <%- body %>
+  </main>
+</body>
+</html>

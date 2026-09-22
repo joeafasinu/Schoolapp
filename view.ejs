@@ -1,0 +1,80 @@
+<div class="toolbar no-print">
+  <h2>Report Card</h2>
+  <div>
+    <button class="btn btn-outline" onclick="window.print()">Print</button>
+    <a class="btn btn-gold" href="/reportcard/<%= student.id %>/pdf">Download PDF</a>
+  </div>
+</div>
+
+<div class="report-card">
+  <div class="report-header">
+    <h1><%= school.name %></h1>
+    <p class="muted"><%= school.address || '' %></p>
+    <h3 style="margin-top:0.5rem;"><%= term.term_name %>, <%= term.session_name %> — Student Report Card</h3>
+  </div>
+
+  <div class="report-meta">
+    <div><span>Student Name</span><strong><%= student.full_name %></strong></div>
+    <div><span>Class</span><strong><%= klass.name %></strong></div>
+    <div><span>Admission No.</span><strong><%= student.admission_no || '—' %></strong></div>
+    <div><span>Position</span><strong><%= position %> of <%= classSize %></strong></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <% (subjectRows[0] ? subjectRows[0].compScores : []).forEach(c => { %><th><%= c.name %></th><% }) %>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    <% subjectRows.forEach(row => { %>
+      <tr>
+        <td><%= row.subjectName %></td>
+        <% row.compScores.forEach(c => { %><td class="text-right"><%= c.score ?? '—' %></td><% }) %>
+        <td class="text-right"><strong><%= row.total %></strong></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+
+  <div class="summary-grid">
+    <div class="summary-box"><div class="num"><%= grandTotal %></div><div class="lbl">Grand Total</div></div>
+    <div class="summary-box"><div class="num"><%= average %></div><div class="lbl">Average</div></div>
+    <div class="summary-box"><div class="num"><%= gradeFor(average).grade %></div><div class="lbl"><%= gradeFor(average).remark %></div></div>
+    <div class="summary-box"><div class="num"><%= attStats.present || 0 %>/<%= attStats.total || 0 %></div><div class="lbl">Days Present</div></div>
+  </div>
+
+  <% if (commentRow && (commentRow.teacher_comment || commentRow.admin_comment)) { %>
+    <div style="margin-top:1rem; font-size:0.88rem;">
+      <% if (commentRow.teacher_comment) { %><p><strong>Class Teacher's Comment:</strong> <%= commentRow.teacher_comment %></p><% } %>
+      <% if (commentRow.admin_comment) { %><p><strong>Principal's Comment:</strong> <%= commentRow.admin_comment %></p><% } %>
+    </div>
+  <% } %>
+
+  <p class="grade-key">Grading: A = 70–100 (Excellent) · B = 60–69 (Very Good) · C = 50–59 (Good) · D = 45–49 (Fair) · E = 40–44 (Pass) · F = 0–39 (Fail)</p>
+
+  <div class="sign-row">
+    <div class="sign-box">Class Teacher's Signature</div>
+    <div class="sign-box">Principal's Signature</div>
+  </div>
+</div>
+
+<div class="card no-print" style="max-width:800px; margin:1.5rem auto;">
+  <h3>Add / Edit Comments</h3>
+  <p class="muted">These appear on the printed report card above.</p>
+  <form method="POST" action="/reportcard/<%= student.id %>/comment">
+    <div class="field">
+      <label>Class Teacher's Comment</label>
+      <textarea name="teacher_comment" rows="2"><%= commentRow ? (commentRow.teacher_comment || '') : '' %></textarea>
+    </div>
+    <% if (user.role === 'school_admin') { %>
+    <div class="field">
+      <label>Principal's Comment</label>
+      <textarea name="admin_comment" rows="2"><%= commentRow ? (commentRow.admin_comment || '') : '' %></textarea>
+    </div>
+    <% } %>
+    <button class="btn btn-gold" type="submit">Save Comments</button>
+  </form>
+</div>

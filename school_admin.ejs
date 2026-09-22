@@ -1,0 +1,60 @@
+<h2>Welcome back, <%= user.name %></h2>
+<p class="muted">
+  <% if (activeTerm) { %>
+    Active term: <strong><%= activeTerm.term_name %>, <%= activeTerm.session_name %></strong>
+  <% } else { %>
+    <span class="badge badge-red">No active term set yet</span> — go to Setup to create one.
+  <% } %>
+</p>
+
+<div class="card-grid">
+  <div class="card stat-box">
+    <div class="stat-num"><%= counts.classes %></div>
+    <div class="stat-label">Classes</div>
+  </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= counts.subjects %></div>
+    <div class="stat-label">Subjects</div>
+  </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= counts.students %></div>
+    <div class="stat-label">Students</div>
+  </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= counts.teachers %></div>
+    <div class="stat-label">Teachers</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Quick actions</h3>
+  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+    <a href="/setup/students" class="btn">Manage Students</a>
+    <a href="/setup/teachers" class="btn btn-outline">Manage Teachers</a>
+    <a href="/setup/classes" class="btn btn-outline">Manage Classes</a>
+    <a href="/setup/subjects" class="btn btn-outline">Manage Subjects</a>
+    <a href="/broadsheet" class="btn btn-gold">View Broadsheets</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Your Classes</h3>
+  <% if (classes.length === 0) { %>
+    <p class="muted">No classes yet. <a href="/setup/classes">Create your first class</a>.</p>
+  <% } else { %>
+    <table>
+      <thead><tr><th>Class</th><th>Actions</th></tr></thead>
+      <tbody>
+      <% classes.forEach(c => { %>
+        <tr>
+          <td><%= c.name %></td>
+          <td>
+            <a class="btn btn-sm btn-outline" href="/broadsheet/<%= c.id %>">View Broadsheet</a>
+            <a class="btn btn-sm btn-outline" href="/setup/students?class_id=<%= c.id %>">View Students</a>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

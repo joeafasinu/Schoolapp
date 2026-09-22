@@ -1,0 +1,44 @@
+<div class="toolbar">
+  <h2>Attendance — <%= klass.name %></h2>
+  <span class="badge badge-gold"><%= term.term_name %>, <%= term.session_name %></span>
+</div>
+
+<div class="card">
+  <form method="GET" action="/attendance" class="form-row">
+    <div class="field">
+      <label>Class</label>
+      <select name="class_id" onchange="this.form.submit()">
+        <% classes.forEach(c => { %>
+          <option value="<%= c.id %>" <%= String(c.id) === String(klass.id) ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" name="date" value="<%= date %>" onchange="this.form.submit()" />
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <form method="POST" action="/attendance/<%= klass.id %>">
+    <input type="hidden" name="date" value="<%= date %>" />
+    <table>
+      <thead><tr><th>Student</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th></tr></thead>
+      <tbody>
+      <% students.forEach(s => { %>
+        <% const current = statusMap[s.id] || 'present'; %>
+        <tr>
+          <td><%= s.full_name %></td>
+          <% ['present','absent','late','excused'].forEach(st => { %>
+            <td style="text-align:center;">
+              <input type="radio" name="status_<%= s.id %>" value="<%= st %>" <%= current === st ? 'checked' : '' %> />
+            </td>
+          <% }) %>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <button class="btn btn-gold" type="submit" style="margin-top:1rem;">Save Attendance for <%= date %></button>
+  </form>
+</div>

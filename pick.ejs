@@ -1,0 +1,17 @@
+<h2>Enter Scores</h2>
+<p class="muted">Choose a class and subject you're assigned to.</p>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Class</th><th>Subject</th><th>Action</th></tr></thead>
+    <tbody>
+    <% assignments.forEach(a => { %>
+      <tr>
+        <td><%= a.class_name %></td>
+        <td><%= a.subject_name %></td>
+        <td><a class="btn btn-sm" href="/scores/<%= a.class_id %>/<%= a.subject_id %>">Enter / Edit Scores</a></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

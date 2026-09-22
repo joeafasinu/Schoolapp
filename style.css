@@ -1,0 +1,153 @@
+:root {
+  --navy: #1e2761;
+  --navy-dark: #12173a;
+  --gold: #b8892b;
+  --ice: #cadcfc;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #1a1f36;
+  --muted: #667085;
+  --line: #e3e7f1;
+  --green: #2c7a57;
+  --red: #a8433a;
+  --green-bg: #eaf4ee;
+  --red-bg: #fbecea;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Calibri, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+h1, h2, h3 { font-family: Georgia, "Cambria", serif; color: var(--navy); margin: 0 0 0.4em; }
+a { color: var(--navy); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.topbar {
+  background: var(--navy-dark);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.topbar-brand { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+.brand-mark { background: var(--gold); color: var(--navy-dark); border-radius: 6px; padding: 2px 7px; font-size: 0.85rem; }
+.school-tag { color: var(--ice); font-weight: 400; font-size: 0.85rem; margin-left: 0.5rem; }
+.topbar-nav { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; }
+.topbar-nav a { color: #dfe4f5; font-size: 0.92rem; }
+.topbar-nav a:hover { color: #fff; }
+.topbar-user { color: var(--ice); font-size: 0.85rem; }
+.logout-link { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; }
+
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 4px rgba(30,39,97,0.05);
+}
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+
+.btn {
+  display: inline-block;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 7px;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn:hover { background: #161d4d; text-decoration: none; }
+.btn-gold { background: var(--gold); color: #fff; }
+.btn-gold:hover { background: #9c7423; }
+.btn-outline { background: transparent; color: var(--navy); border: 1px solid var(--navy); }
+.btn-outline:hover { background: var(--navy); color: #fff; }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+.btn-danger { background: var(--red); }
+
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { border: 1px solid var(--line); padding: 0.5rem 0.7rem; font-size: 0.9rem; text-align: left; }
+th { background: var(--navy); color: #fff; }
+tr:nth-child(even) td { background: #f7f8fc; }
+
+input, select, textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.92rem;
+  width: 100%;
+}
+label { font-size: 0.85rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 0.25rem; }
+.field { margin-bottom: 1rem; }
+.form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.form-row .field { flex: 1; min-width: 180px; }
+
+.badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-gold { background: #fff7ec; color: var(--gold); }
+
+.stat-box { text-align: center; padding: 1rem; }
+.stat-num { font-size: 2rem; font-weight: 700; color: var(--navy); }
+.stat-label { color: var(--muted); font-size: 0.85rem; }
+
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+}
+.login-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2.2rem 2.5rem;
+  width: 380px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.login-card h1 { text-align: center; font-size: 1.4rem; }
+.login-sub { text-align: center; color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+.demo-hint { background: #f2f4fa; border-radius: 8px; padding: 0.7rem 0.9rem; font-size: 0.78rem; color: var(--muted); margin-top: 1rem; line-height: 1.5; }
+.error-msg { background: var(--red-bg); color: var(--red); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; }
+.success-msg { background: var(--green-bg); color: var(--green); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem; }
+.muted { color: var(--muted); }
+.text-right { text-align: right; }
+.rank-1 { background: #fff7ec !important; font-weight: 700; }
+
+/* ---------- PRINT / REPORT CARD ---------- */
+.report-card {
+  background: #fff;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  border: 1px solid var(--line);
+}
+.report-header { text-align: center; border-bottom: 3px solid var(--navy); padding-bottom: 0.8rem; margin-bottom: 1rem; }
+.report-header h1 { margin-bottom: 0.1rem; }
+.report-meta { display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; flex-wrap: wrap; gap: 0.4rem 1.5rem;}
+.report-meta div span { color: var(--muted); font-size: 0.78rem; display: block; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin: 1rem 0; }
+.summary-box { background: #f7f8fc; border-radius: 8px; padding: 0.6rem; text-align: center; }
+.summary-box .num { font-size: 1.3rem; font-weight: 700; color: var(--navy); }
+.summary-box .lbl { font-size: 0.72rem; color: var(--muted); }
+.grade-key { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+.sign-row { display: flex; justify-content: space-between; margin-top: 2.5rem; }
+.sign-box { text-align: center; width: 45%; border-top: 1px solid #999; padding-top: 0.3rem; font-size: 0.82rem; color: var(--muted); }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .page-wrap { padding: 0; max-width: 100%; }
+  .report-card { border: none; padding: 0; }
+}

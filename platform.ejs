@@ -1,0 +1,24 @@
+<h2>Platform Overview</h2>
+<p class="muted">All schools registered on SchoolApp.</p>
+
+<div class="card-grid">
+  <div class="card stat-box">
+    <div class="stat-num"><%= schools.length %></div>
+    <div class="stat-label">Total Schools</div>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>School</th><th>Address</th><th>Registered</th></tr></thead>
+    <tbody>
+    <% schools.forEach(s => { %>
+      <tr>
+        <td><%= s.name %></td>
+        <td><%= s.address || '—' %></td>
+        <td><%= s.created_at %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

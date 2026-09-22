@@ -1,0 +1,44 @@
+<div class="toolbar">
+  <h2>Classes</h2>
+</div>
+
+<div class="card">
+  <h3>Add a new class</h3>
+  <form method="POST" action="/setup/classes" class="form-row">
+    <div class="field">
+      <label>Class Name</label>
+      <input type="text" name="name" placeholder="e.g. JSS 1A" required />
+    </div>
+    <div class="field">
+      <label>Form Teacher (optional)</label>
+      <select name="form_teacher_id">
+        <option value="">— None —</option>
+        <% teachers.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn" type="submit">Add Class</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Class</th><th>Form Teacher</th><th>Students</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% classes.forEach(c => { %>
+      <tr>
+        <td><%= c.name %></td>
+        <td><%= c.teacher_name || '—' %></td>
+        <td><%= c.student_count %></td>
+        <td>
+          <a class="btn btn-sm btn-outline" href="/broadsheet/<%= c.id %>">Broadsheet</a>
+          <form method="POST" action="/setup/classes/<%= c.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Delete this class?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

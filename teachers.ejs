@@ -1,0 +1,87 @@
+<div class="toolbar"><h2>Teachers</h2></div>
+
+<div class="card">
+  <h3>Add a new teacher</h3>
+  <form method="POST" action="/setup/teachers" class="form-row">
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" name="name" required />
+    </div>
+    <div class="field">
+      <label>Email (used to log in)</label>
+      <input type="email" name="email" required />
+    </div>
+    <div class="field">
+      <label>Temporary Password</label>
+      <input type="text" name="password" placeholder="teacher123" />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn" type="submit">Add Teacher</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Teachers</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% teachers.forEach(t => { %>
+      <tr>
+        <td><%= t.name %></td>
+        <td><%= t.email %></td>
+        <td>
+          <form method="POST" action="/setup/teachers/<%= t.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Remove this teacher?')">
+            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Assign Subject to Teacher</h3>
+  <form method="POST" action="/setup/assignments" class="form-row">
+    <div class="field">
+      <label>Teacher</label>
+      <select name="teacher_id" required>
+        <% teachers.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Class</label>
+      <select name="class_id" required>
+        <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Subject</label>
+      <select name="subject_id" required>
+        <% subjects.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-gold" type="submit">Assign</button>
+    </div>
+  </form>
+
+  <table style="margin-top:1rem;">
+    <thead><tr><th>Teacher</th><th>Class</th><th>Subject</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% assignments.forEach(a => { %>
+      <tr>
+        <td><%= a.teacher_name %></td>
+        <td><%= a.class_name %></td>
+        <td><%= a.subject_name %></td>
+        <td>
+          <form method="POST" action="/setup/assignments/<%= a.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Remove this assignment?')">
+            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

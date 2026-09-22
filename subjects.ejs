@@ -1,0 +1,32 @@
+<div class="toolbar"><h2>Subjects</h2></div>
+
+<div class="card">
+  <h3>Add a new subject</h3>
+  <form method="POST" action="/setup/subjects" class="form-row">
+    <div class="field">
+      <label>Subject Name</label>
+      <input type="text" name="name" placeholder="e.g. Mathematics" required />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn" type="submit">Add Subject</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Subject</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% subjects.forEach(s => { %>
+      <tr>
+        <td><%= s.name %></td>
+        <td>
+          <form method="POST" action="/setup/subjects/<%= s.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Delete this subject?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

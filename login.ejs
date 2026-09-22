@@ -1,0 +1,27 @@
+<div class="login-wrap">
+  <div class="login-card">
+    <h1>SchoolApp</h1>
+    <p class="login-sub">Attendance &amp; Results, done properly.</p>
+    <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+    <form method="POST" action="/login">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required autofocus />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required />
+      </div>
+      <button class="btn" style="width:100%" type="submit">Log In</button>
+    </form>
+    <p style="text-align:center; margin-top:1rem; font-size:0.85rem;">
+      New school? <a href="/signup">Register here</a>
+    </p>
+    <div class="demo-hint">
+      <strong>Demo logins</strong> (after running the seed script):<br/>
+      School Admin — admin@brightfield.demo / admin123<br/>
+      Teacher — chinedu@brightfield.demo / teacher123<br/>
+      Platform Admin — owner@platform.com / owner123
+    </div>
+  </div>
+</div>

@@ -1,0 +1,50 @@
+<div class="toolbar"><h2>Terms &amp; Sessions</h2></div>
+
+<div class="card">
+  <h3>Start a new term</h3>
+  <p class="muted">Creating a new term automatically makes it the active one for score entry and attendance.</p>
+  <form method="POST" action="/setup/terms" class="form-row">
+    <div class="field">
+      <label>Session</label>
+      <input type="text" name="session_name" placeholder="2025/2026" required />
+    </div>
+    <div class="field">
+      <label>Term</label>
+      <select name="term_name" required>
+        <option>First Term</option>
+        <option>Second Term</option>
+        <option>Third Term</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Total School Days</label>
+      <input type="number" name="total_school_days" placeholder="60" />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-gold" type="submit">Start Term</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Session</th><th>Term</th><th>School Days</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% terms.forEach(t => { %>
+      <tr>
+        <td><%= t.session_name %></td>
+        <td><%= t.term_name %></td>
+        <td><%= t.total_school_days %></td>
+        <td><% if (t.is_active) { %><span class="badge badge-green">Active</span><% } else { %><span class="muted">Closed</span><% } %></td>
+        <td>
+          <% if (!t.is_active) { %>
+          <form method="POST" action="/setup/terms/<%= t.id %>/activate" style="display:inline">
+            <button class="btn btn-sm btn-outline" type="submit">Make Active</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

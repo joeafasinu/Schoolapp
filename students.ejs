@@ -1,0 +1,77 @@
+<div class="toolbar"><h2>Students</h2></div>
+
+<div class="card">
+  <h3>Add a new student</h3>
+  <form method="POST" action="/setup/students">
+    <div class="form-row">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" name="full_name" required />
+      </div>
+      <div class="field">
+        <label>Admission No.</label>
+        <input type="text" name="admission_no" />
+      </div>
+      <div class="field">
+        <label>Class</label>
+        <select name="class_id" required>
+          <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label>Gender</label>
+        <select name="gender">
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Guardian Name</label>
+        <input type="text" name="guardian_name" />
+      </div>
+      <div class="field">
+        <label>Guardian Email</label>
+        <input type="email" name="guardian_email" placeholder="for sending report cards" />
+      </div>
+      <div class="field">
+        <label>Guardian Phone</label>
+        <input type="text" name="guardian_phone" />
+      </div>
+    </div>
+    <button class="btn" type="submit">Add Student</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <form method="GET" action="/setup/students">
+      <select name="class_id" onchange="this.form.submit()">
+        <option value="">All Classes</option>
+        <% classes.forEach(c => { %>
+          <option value="<%= c.id %>" <%= String(classFilter) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </form>
+  </div>
+  <table>
+    <thead><tr><th>Name</th><th>Admission No.</th><th>Class</th><th>Guardian</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% students.forEach(s => { %>
+      <tr>
+        <td><%= s.full_name %></td>
+        <td><%= s.admission_no || '—' %></td>
+        <td><%= s.class_name %></td>
+        <td><%= s.guardian_name || '—' %><br/><span class="muted"><%= s.guardian_email || '' %></span></td>
+        <td>
+          <a class="btn btn-sm btn-outline" href="/reportcard/<%= s.id %>">Report Card</a>
+          <form method="POST" action="/setup/students/<%= s.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Delete this student?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
