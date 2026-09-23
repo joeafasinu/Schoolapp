@@ -1,0 +1,54 @@
+<div class="toolbar">
+  <h2>Bulk Import Students</h2>
+  <a href="/setup/students" class="btn btn-outline btn-sm">Back to Students</a>
+</div>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
+<% if (!result) { %>
+<div class="card" style="max-width:640px;">
+  <h3>1. Download the template</h3>
+  <p class="muted">Fill this in — one row per student. Only <strong>full_name</strong> and <strong>class</strong> are required. The class name must exactly match an existing class (check the list below).</p>
+  <a class="btn btn-outline" href="/setup/students/import/template">Download CSV Template</a>
+
+  <% if (classes.length === 0) { %>
+    <div class="error-msg" style="margin-top:1rem;">You don't have any classes yet — <a href="/setup/classes">create at least one class first</a> so the "class" column has something to match against.</div>
+  <% } else { %>
+    <p style="margin-top:1rem; font-size:0.85rem;" class="muted">Your current classes: <strong><%= classes.map(c => c.name).join(', ') %></strong></p>
+  <% } %>
+
+  <h3 style="margin-top:1.5rem;">2. Upload your filled-in CSV</h3>
+  <form method="POST" action="/setup/students/import" enctype="multipart/form-data">
+    <div class="field">
+      <input type="file" name="csv_file" accept=".csv,text/csv" required />
+    </div>
+    <button class="btn btn-gold" type="submit">Import Students</button>
+  </form>
+</div>
+<% } else { %>
+<div class="card">
+  <h3>Import complete</h3>
+  <div class="card-grid" style="margin-bottom:1rem;">
+    <div class="card stat-box"><div class="stat-num"><%= result.total %></div><div class="stat-label">Rows in file</div></div>
+    <div class="card stat-box"><div class="stat-num" style="color:var(--green);"><%= result.imported.length %></div><div class="stat-label">Imported</div></div>
+    <div class="card stat-box"><div class="stat-num" style="color:var(--red);"><%= result.skipped.length %></div><div class="stat-label">Skipped</div></div>
+  </div>
+
+  <% if (result.skipped.length > 0) { %>
+    <h4>Skipped rows (fix these and re-upload just those rows if you like)</h4>
+    <table>
+      <thead><tr><th>Row</th><th>Reason</th></tr></thead>
+      <tbody>
+      <% result.skipped.forEach(s => { %>
+        <tr><td><%= s.row %></td><td><%= s.reason %></td></tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <div style="margin-top:1.5rem;">
+    <a class="btn btn-gold" href="/setup/students">View Students</a>
+    <a class="btn btn-outline" href="/setup/students/import">Import Another File</a>
+  </div>
+</div>
+<% } %>
