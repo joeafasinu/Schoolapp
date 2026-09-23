@@ -44,6 +44,7 @@ app.use("/scores", requireActiveSubscription, require("./routes/scores"));
 app.use("/attendance", requireActiveSubscription, require("./routes/attendance"));
 app.use("/broadsheet", requireActiveSubscription, require("./routes/broadsheet"));
 app.use("/reportcard", requireActiveSubscription, require("./routes/reportcard"));
+app.use("/fees", requireActiveSubscription, require("./routes/fees"));
 app.use("/platform", require("./routes/platform"));
 
 app.get("/", (req, res) => {

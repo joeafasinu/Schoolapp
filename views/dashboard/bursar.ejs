@@ -1,0 +1,54 @@
+<h2>Fee Dashboard</h2>
+<p class="muted">
+  <% if (activeTerm) { %>
+    <%= activeTerm.term_name %>, <%= activeTerm.session_name %>
+  <% } else { %>
+    <span class="badge badge-red">No active term set</span> — ask your school admin to start one.
+  <% } %>
+  &nbsp;•&nbsp; <a href="/fees/structure">Manage Fee Structure</a>
+</p>
+
+<div class="card-grid">
+  <div class="card stat-box"><div class="stat-num"><%= formatNaira(stats.totalCollected) %></div><div class="stat-label">Collected</div></div>
+  <div class="card stat-box"><div class="stat-num" style="color:var(--red);"><%= formatNaira(stats.totalOutstanding) %></div><div class="stat-label">Outstanding</div></div>
+  <div class="card stat-box"><div class="stat-num"><%= formatNaira(stats.totalExpected) %></div><div class="stat-label">Total Expected</div></div>
+  <div class="card stat-box"><div class="stat-num" style="color:var(--red);"><%= stats.overdueCount %></div><div class="stat-label">Overdue Accounts</div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <h3 style="margin:0;">All Students</h3>
+    <form method="GET" action="/dashboard">
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        <option value="Unpaid" <%= statusFilter === 'Unpaid' ? 'selected' : '' %>>Unpaid</option>
+        <option value="Partial" <%= statusFilter === 'Partial' ? 'selected' : '' %>>Partial</option>
+        <option value="Paid" <%= statusFilter === 'Paid' ? 'selected' : '' %>>Paid</option>
+        <option value="Overdue" <%= statusFilter === 'Overdue' ? 'selected' : '' %>>Overdue only</option>
+      </select>
+    </form>
+  </div>
+  <table>
+    <thead><tr><th>Student</th><th>Class</th><th>Fee</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    <% rows.forEach(r => { %>
+      <tr>
+        <td><%= r.fullName %></td>
+        <td><%= r.className %></td>
+        <td class="text-right"><%= formatNaira(r.expected) %></td>
+        <td class="text-right"><%= formatNaira(r.paid) %></td>
+        <td class="text-right"><strong><%= formatNaira(r.balance) %></strong></td>
+        <td>
+          <% if (r.status === 'Paid') { %><span class="badge badge-green">Paid</span>
+          <% } else if (r.status === 'Partial') { %><span class="badge badge-gold">Partial</span>
+          <% } else if (r.status === 'No Fee Set') { %><span class="muted" style="font-size:0.8rem;">No fee set</span>
+          <% } else { %><span class="badge badge-red">Unpaid</span><% } %>
+          <% if (r.overdue) { %><br/><span class="badge badge-red" style="margin-top:2px;">Overdue</span><% } %>
+        </td>
+        <td><a class="btn btn-sm btn-outline" href="/fees/student/<%= r.studentId %>">Manage</a></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <% if (rows.length === 0) { %><p class="muted">No students match this filter.</p><% } %>
+</div>

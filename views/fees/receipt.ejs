@@ -1,0 +1,47 @@
+<div class="toolbar no-print">
+  <h2>Payment Receipt</h2>
+  <div>
+    <button class="btn btn-outline" onclick="window.print()">Print</button>
+    <a class="btn btn-gold" href="/fees/student/<%= student.id %>/receipt/<%= payment.id %>/pdf">Download PDF</a>
+    <% const waNum = toWhatsAppNumber(student.guardian_phone); %>
+    <% if (waNum) { %>
+      <% const waMsg = `Hello ${student.guardian_name || 'Parent/Guardian'}, this confirms we received a payment of ${formatNaira(payment.amount)} for ${student.full_name}'s school fees (${term.term_name}, ${term.session_name}). Total paid so far: ${formatNaira(summary.paid)}. Balance remaining: ${formatNaira(summary.balance)}. Thank you!`; %>
+      <a class="btn" style="background:#25D366;" target="_blank" rel="noopener" href="https://wa.me/<%= waNum %>?text=<%= encodeURIComponent(waMsg) %>">Send via WhatsApp</a>
+    <% } %>
+  </div>
+</div>
+
+<div class="report-card" style="max-width:480px;">
+  <div class="report-header">
+    <% if (school.logo_data) { %>
+      <img src="/branding/logo/<%= school.id %>" alt="" style="max-height:60px; max-width:160px; margin-bottom:0.5rem;" />
+    <% } %>
+    <h1 style="font-size:1.3rem;"><%= school.name %></h1>
+    <p class="muted" style="margin:0;">Payment Receipt</p>
+  </div>
+
+  <div class="report-meta">
+    <div><span>Receipt No.</span><strong>RCT-<%= school.id %>-<%= payment.id %></strong></div>
+    <div><span>Date</span><strong><%= new Date(payment.payment_date).toLocaleDateString() %></strong></div>
+  </div>
+  <div class="report-meta">
+    <div><span>Student</span><strong><%= student.full_name %></strong></div>
+    <div><span>Class</span><strong><%= klass.name %></strong></div>
+  </div>
+
+  <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="summary-box"><div class="num"><%= formatNaira(payment.amount) %></div><div class="lbl">This Payment</div></div>
+    <div class="summary-box"><div class="num"><%= formatNaira(summary.paid) %></div><div class="lbl">Total Paid</div></div>
+    <div class="summary-box"><div class="num" style="color:<%= summary.balance > 0 ? 'var(--red)' : 'var(--green)' %>;"><%= formatNaira(summary.balance) %></div><div class="lbl">Balance</div></div>
+  </div>
+
+  <% if (payment.method) { %><p style="font-size:0.85rem;">Method: <strong><%= payment.method %></strong></p><% } %>
+  <% if (payment.notes) { %><p style="font-size:0.85rem;">Notes: <%= payment.notes %></p><% } %>
+
+  <p class="grade-key" style="text-align:center; margin-top:1.5rem;">Thank you for your payment.</p>
+
+  <div class="sign-row">
+    <div class="sign-box">Bursar's Signature</div>
+    <div class="sign-box">School Stamp</div>
+  </div>
+</div>

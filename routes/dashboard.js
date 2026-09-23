@@ -2,6 +2,7 @@ const express = require("express");
 const db = require("../db");
 const { requireLogin } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
+const { getFeeSummary, summarizeFeeRows, formatNaira } = require("../utils/fees");
 const router = express.Router();
 
 router.get(
@@ -51,6 +52,21 @@ router.get(
       );
       const formClass = await db.get("SELECT * FROM classes WHERE form_teacher_id = $1 AND school_id = $2", [user.id, schoolId]);
       return res.render("dashboard/teacher", { title: "Dashboard", assignments, formClass, activeTerm, school });
+    }
+
+    if (user.role === "bursar") {
+      if (!activeTerm) {
+        return res.render("dashboard/bursar", {
+          title: "Fee Dashboard", activeTerm: null, rows: [], stats: { totalCollected: 0, totalOutstanding: 0, totalExpected: 0, overdueCount: 0 },
+          formatNaira, statusFilter: null,
+        });
+      }
+      let rows = await getFeeSummary(schoolId, activeTerm.id);
+      const statusFilter = req.query.status || "";
+      if (statusFilter === "Overdue") rows = rows.filter((r) => r.overdue);
+      else if (statusFilter) rows = rows.filter((r) => r.status === statusFilter);
+      const stats = summarizeFeeRows(await getFeeSummary(schoolId, activeTerm.id)); // stats always over the full set, not the filtered view
+      return res.render("dashboard/bursar", { title: "Fee Dashboard", activeTerm, rows, stats, formatNaira, statusFilter });
     }
 
     res.redirect("/login");

@@ -1,0 +1,45 @@
+<div class="toolbar"><h2>Bursars</h2></div>
+<p class="muted">Bursars can record fee payments, manage the fee structure, and view the fee dashboard — but not scores, attendance, or other setup areas.</p>
+
+<% if (error === 'exists') { %><div class="error-msg">An account with that email already exists.</div><% } %>
+
+<div class="card">
+  <h3>Add a new bursar</h3>
+  <form method="POST" action="/setup/bursars" class="form-row">
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" name="name" required />
+    </div>
+    <div class="field">
+      <label>Email (used to log in)</label>
+      <input type="email" name="email" required />
+    </div>
+    <div class="field">
+      <label>Temporary Password</label>
+      <input type="text" name="password" placeholder="bursar123" />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-gold" type="submit">Add Bursar</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% bursars.forEach(b => { %>
+      <tr>
+        <td><%= b.name %></td>
+        <td><%= b.email %></td>
+        <td>
+          <form method="POST" action="/setup/bursars/<%= b.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Remove this bursar?')">
+            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (bursars.length === 0) { %><tr><td colspan="3" class="muted">No bursars added yet.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>

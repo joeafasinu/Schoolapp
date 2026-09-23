@@ -26,14 +26,21 @@
         <a href="/setup/subjects">Subjects</a>
         <a href="/setup/students">Students</a>
         <a href="/setup/teachers">Teachers</a>
+        <a href="/setup/bursars">Bursars</a>
         <a href="/setup/terms">Terms</a>
         <a href="/setup/branding">Branding</a>
         <a href="/broadsheet">Broadsheet</a>
+        <a href="/fees/structure">Fee Structure</a>
         <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'teacher') { %>
         <a href="/scores">Enter Scores</a>
         <a href="/attendance">Attendance</a>
+        <a href="/billing">Billing</a>
+      <% } %>
+      <% if (user.role === 'bursar') { %>
+        <a href="/dashboard">Fee Dashboard</a>
+        <a href="/fees/structure">Fee Structure</a>
         <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'platform_admin') { %>

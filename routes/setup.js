@@ -280,6 +280,37 @@ router.delete(
   })
 );
 
+// ===================== BURSARS =====================
+router.get(
+  "/bursars",
+  asyncHandler(async (req, res) => {
+    const bursars = await db.all("SELECT * FROM users WHERE school_id = $1 AND role = 'bursar' ORDER BY name", [schoolId(req)]);
+    res.render("setup/bursars", { title: "Bursars", bursars, error: req.query.error || null });
+  })
+);
+
+router.post(
+  "/bursars",
+  asyncHandler(async (req, res) => {
+    const { name, email, password } = req.body;
+    const existing = await db.get("SELECT id FROM users WHERE email = $1", [email.trim().toLowerCase()]);
+    if (existing) return res.redirect("/setup/bursars?error=exists");
+    const hash = bcrypt.hashSync(password || "bursar123", 10);
+    await db.run("INSERT INTO users (school_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, 'bursar')", [
+      schoolId(req), name.trim(), email.trim().toLowerCase(), hash,
+    ]);
+    res.redirect("/setup/bursars");
+  })
+);
+
+router.delete(
+  "/bursars/:id",
+  asyncHandler(async (req, res) => {
+    await db.run("DELETE FROM users WHERE id = $1 AND school_id = $2 AND role = 'bursar'", [req.params.id, schoolId(req)]);
+    res.redirect("/setup/bursars");
+  })
+);
+
 router.post(
   "/assignments",
   asyncHandler(async (req, res) => {

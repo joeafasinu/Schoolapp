@@ -123,3 +123,34 @@ ALTER TABLE schools ADD COLUMN IF NOT EXISTS logo_data TEXT;
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS logo_mime TEXT;
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS primary_color TEXT;
 
+-- Add 'bursar' as a valid user role
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('platform_admin','school_admin','teacher','bursar'));
+
+-- ===================== FEE TRACKING =====================
+CREATE TABLE IF NOT EXISTS fee_structures (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  term_id INTEGER NOT NULL REFERENCES terms(id),
+  class_id INTEGER NOT NULL REFERENCES classes(id),
+  amount NUMERIC(12,2) NOT NULL,
+  due_date DATE,
+  UNIQUE(term_id, class_id)
+);
+
+CREATE TABLE IF NOT EXISTS fee_payments (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  term_id INTEGER NOT NULL REFERENCES terms(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  amount NUMERIC(12,2) NOT NULL,
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  method TEXT,
+  notes TEXT,
+  recorded_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fee_payments_lookup ON fee_payments(term_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_fee_structures_lookup ON fee_structures(term_id, class_id);
+
