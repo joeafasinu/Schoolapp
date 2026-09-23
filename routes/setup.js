@@ -1,9 +1,19 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
 const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1024 * 1024 }, // 1MB - logos should be small; keeps DB storage cheap
+  fileFilter: (req, file, cb) => {
+    const ok = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"].includes(file.mimetype);
+    cb(ok ? null : new Error("Please upload a PNG, JPG, WEBP or SVG image."), ok);
+  },
+});
 
 router.use(requireRole("school_admin"));
 
@@ -206,6 +216,44 @@ router.post(
     await db.run("UPDATE terms SET is_active = 0 WHERE school_id = $1", [schoolId(req)]);
     await db.run("UPDATE terms SET is_active = 1 WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
     res.redirect("/setup/terms");
+  })
+);
+
+// ===================== BRANDING (logo upload) =====================
+router.get(
+  "/branding",
+  asyncHandler(async (req, res) => {
+    const school = await db.get("SELECT * FROM schools WHERE id = $1", [schoolId(req)]);
+    res.render("setup/branding", { title: "Branding", school, error: req.query.error || null, saved: req.query.saved || null });
+  })
+);
+
+router.post(
+  "/branding",
+  (req, res, next) => {
+    upload.single("logo")(req, res, (err) => {
+      if (err) return res.redirect("/setup/branding?error=" + encodeURIComponent(err.message));
+      next();
+    });
+  },
+  asyncHandler(async (req, res) => {
+    const { primary_color } = req.body;
+    if (req.file) {
+      const base64 = req.file.buffer.toString("base64");
+      await db.run("UPDATE schools SET logo_data = $1, logo_mime = $2 WHERE id = $3", [base64, req.file.mimetype, schoolId(req)]);
+    }
+    if (primary_color) {
+      await db.run("UPDATE schools SET primary_color = $1 WHERE id = $2", [primary_color, schoolId(req)]);
+    }
+    res.redirect("/setup/branding?saved=1");
+  })
+);
+
+router.post(
+  "/branding/remove-logo",
+  asyncHandler(async (req, res) => {
+    await db.run("UPDATE schools SET logo_data = NULL, logo_mime = NULL WHERE id = $1", [schoolId(req)]);
+    res.redirect("/setup/branding?saved=1");
   })
 );
 

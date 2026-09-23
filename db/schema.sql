@@ -109,3 +109,17 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE INDEX IF NOT EXISTS idx_scores_lookup ON scores(term_id, student_id, subject_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_lookup ON attendance(term_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
+
+-- ===================== MIGRATIONS (idempotent - safe to run every boot) =====================
+-- Platform/billing fields on schools
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'trial'
+  CHECK (subscription_status IN ('trial','active','suspended'));
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS plan TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS platform_notes TEXT;
+
+-- Branding fields on schools (logo stored inline as base64 - simplest option with no external storage account needed)
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS logo_data TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS logo_mime TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS primary_color TEXT;
+

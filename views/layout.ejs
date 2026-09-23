@@ -10,7 +10,13 @@
   <% if (user) { %>
   <div class="topbar no-print">
     <div class="topbar-brand">
-      <span class="brand-mark">SA</span> SchoolApp
+      <% if (user.school_id) { %>
+        <img src="/branding/logo/<%= user.school_id %>" alt="" style="height:26px; width:auto; border-radius:4px; vertical-align:middle;" onerror="this.style.display='none'; document.getElementById('brand-mark-fallback').style.display='inline-block';" />
+        <span class="brand-mark" id="brand-mark-fallback" style="display:none;">SA</span>
+      <% } else { %>
+        <span class="brand-mark">SA</span>
+      <% } %>
+      SchoolApp
       <% if (user.school_name) { %><span class="school-tag"><%= user.school_name %></span><% } %>
     </div>
     <nav class="topbar-nav">
@@ -21,11 +27,14 @@
         <a href="/setup/students">Students</a>
         <a href="/setup/teachers">Teachers</a>
         <a href="/setup/terms">Terms</a>
+        <a href="/setup/branding">Branding</a>
         <a href="/broadsheet">Broadsheet</a>
+        <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'teacher') { %>
         <a href="/scores">Enter Scores</a>
         <a href="/attendance">Attendance</a>
+        <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'platform_admin') { %>
         <a href="/platform">Schools</a>

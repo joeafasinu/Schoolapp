@@ -8,6 +8,7 @@ const path = require("path");
 
 const db = require("./db");
 const { injectUser } = require("./middleware/auth");
+const { requireActiveSubscription } = require("./middleware/subscription");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,11 +37,13 @@ app.use(injectUser);
 
 app.use("/", require("./routes/auth"));
 app.use("/dashboard", require("./routes/dashboard"));
-app.use("/setup", require("./routes/setup"));
-app.use("/scores", require("./routes/scores"));
-app.use("/attendance", require("./routes/attendance"));
-app.use("/broadsheet", require("./routes/broadsheet"));
-app.use("/reportcard", require("./routes/reportcard"));
+app.use("/billing", require("./routes/billing"));
+app.use("/branding", require("./routes/branding")); // public logo serving - no subscription gate
+app.use("/setup", requireActiveSubscription, require("./routes/setup"));
+app.use("/scores", requireActiveSubscription, require("./routes/scores"));
+app.use("/attendance", requireActiveSubscription, require("./routes/attendance"));
+app.use("/broadsheet", requireActiveSubscription, require("./routes/broadsheet"));
+app.use("/reportcard", requireActiveSubscription, require("./routes/reportcard"));
 app.use("/platform", require("./routes/platform"));
 
 app.get("/", (req, res) => {

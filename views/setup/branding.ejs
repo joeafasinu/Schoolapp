@@ -1,0 +1,26 @@
+<div class="toolbar"><h2>Branding</h2></div>
+<p class="muted">Your logo appears in the navigation bar and on printed/downloaded report cards.</p>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+<% if (saved) { %><div class="success-msg">Saved.</div><% } %>
+
+<div class="card" style="max-width:560px;">
+  <h3>Current Logo</h3>
+  <% if (school.logo_data) { %>
+    <img src="/branding/logo/<%= school.id %>" alt="School logo" style="max-height:100px; max-width:260px; display:block; margin-bottom:1rem; border:1px solid var(--line); border-radius:8px; padding:0.5rem;" />
+    <form method="POST" action="/setup/branding/remove-logo" onsubmit="return confirm('Remove your logo?')">
+      <button class="btn btn-sm btn-danger" type="submit">Remove Logo</button>
+    </form>
+  <% } else { %>
+    <p class="muted">No logo uploaded yet — report cards will show your school name as plain text.</p>
+  <% } %>
+
+  <h3 style="margin-top:1.5rem;">Upload New Logo</h3>
+  <form method="POST" action="/setup/branding" enctype="multipart/form-data">
+    <div class="field">
+      <label>Logo file (PNG, JPG, WEBP or SVG — under 1MB)</label>
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+    </div>
+    <button class="btn btn-gold" type="submit">Upload</button>
+  </form>
+</div>

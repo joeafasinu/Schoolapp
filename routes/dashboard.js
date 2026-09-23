@@ -11,11 +11,16 @@ router.get(
     const user = req.session.user;
 
     if (user.role === "platform_admin") {
-      const schools = await db.all("SELECT * FROM schools ORDER BY created_at DESC");
-      return res.render("dashboard/platform", { title: "Platform Dashboard", schools });
+      const schools = await db.all(
+        `SELECT s.*, (SELECT COUNT(*) FROM users u WHERE u.school_id = s.id AND u.role = 'school_admin') as admin_count,
+         (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id) as student_count
+         FROM schools s ORDER BY s.created_at DESC`
+      );
+      return res.render("dashboard/platform", { title: "Platform Dashboard", schools, error: null });
     }
 
     const schoolId = user.school_id;
+    const school = await db.get("SELECT subscription_status, trial_ends_at FROM schools WHERE id = $1", [schoolId]);
     const activeTerm = await db.get("SELECT * FROM terms WHERE school_id = $1 AND is_active = 1 ORDER BY id DESC LIMIT 1", [schoolId]);
 
     if (user.role === "school_admin") {
@@ -32,7 +37,7 @@ router.get(
         teachers: Number(teachersCount.c),
       };
       const classes = await db.all("SELECT * FROM classes WHERE school_id = $1 ORDER BY name", [schoolId]);
-      return res.render("dashboard/school_admin", { title: "Dashboard", counts, classes, activeTerm });
+      return res.render("dashboard/school_admin", { title: "Dashboard", counts, classes, activeTerm, school });
     }
 
     if (user.role === "teacher") {
@@ -45,7 +50,7 @@ router.get(
         [user.id]
       );
       const formClass = await db.get("SELECT * FROM classes WHERE form_teacher_id = $1 AND school_id = $2", [user.id, schoolId]);
-      return res.render("dashboard/teacher", { title: "Dashboard", assignments, formClass, activeTerm });
+      return res.render("dashboard/teacher", { title: "Dashboard", assignments, formClass, activeTerm, school });
     }
 
     res.redirect("/login");

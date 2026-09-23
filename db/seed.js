@@ -15,10 +15,10 @@ async function main() {
     process.exit(0);
   }
 
-  const schoolId = await db.insert("INSERT INTO schools (name, address) VALUES ($1, $2) RETURNING id", [
-    "Brightfield Academy (Demo)",
-    "12 Freedom Way, Lagos",
-  ]);
+  const schoolId = await db.insert(
+    "INSERT INTO schools (name, address, subscription_status) VALUES ($1, $2, 'active') RETURNING id",
+    ["Brightfield Academy (Demo)", "12 Freedom Way, Lagos"]
+  );
 
   // Platform admin (you, the SaaS owner) - not tied to a school
   await db.run("INSERT INTO users (school_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)", [

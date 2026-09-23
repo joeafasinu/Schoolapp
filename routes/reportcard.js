@@ -142,6 +142,16 @@ router.get(
     const doc = new PDFDocument({ margin: 40, size: "A4" });
     doc.pipe(res);
 
+    if (school.logo_data && school.logo_mime && school.logo_mime !== "image/svg+xml") {
+      try {
+        const logoBuffer = Buffer.from(school.logo_data, "base64");
+        doc.image(logoBuffer, doc.page.width / 2 - 40, doc.y, { fit: [80, 60], align: "center" });
+        doc.moveDown(0.5);
+      } catch (e) {
+        // corrupt or unsupported image data - skip it rather than failing the whole PDF
+      }
+    }
+
     doc.fontSize(18).fillColor("#1E2761").text(school.name, { align: "center" });
     doc.fontSize(11).fillColor("#667085").text(`${term.term_name}, ${term.session_name} — Student Report Card`, { align: "center" });
     doc.moveDown(1);

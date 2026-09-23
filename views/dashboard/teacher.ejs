@@ -1,4 +1,13 @@
 <h2>Welcome, <%= user.name %></h2>
+
+<% const trialActive = school.subscription_status === 'trial' && school.trial_ends_at && new Date(school.trial_ends_at) > new Date(); %>
+<% if (school.subscription_status === 'suspended' || (school.subscription_status === 'trial' && !trialActive)) { %>
+  <div class="error-msg">Your school's access has been paused. <a href="/billing">Visit Billing</a> for details.</div>
+<% } else if (trialActive) { %>
+  <% const daysLeft = Math.ceil((new Date(school.trial_ends_at) - new Date()) / (1000*60*60*24)); %>
+  <div class="success-msg">Your school is on a free trial — <%= daysLeft %> day<%= daysLeft === 1 ? '' : 's' %> left.</div>
+<% } %>
+
 <p class="muted">
   <% if (activeTerm) { %>Active term: <strong><%= activeTerm.term_name %>, <%= activeTerm.session_name %></strong><% } else { %>
     <span class="badge badge-red">No active term set</span> — ask your school admin to set one.

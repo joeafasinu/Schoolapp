@@ -1,22 +1,106 @@
 <h2>Platform Overview</h2>
-<p class="muted">All schools registered on SchoolApp.</p>
+<p class="muted">Every school on SchoolApp, and their subscription status.</p>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
 
 <div class="card-grid">
   <div class="card stat-box">
     <div class="stat-num"><%= schools.length %></div>
     <div class="stat-label">Total Schools</div>
   </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= schools.filter(s => s.subscription_status === 'active').length %></div>
+    <div class="stat-label">Paying / Active</div>
+  </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= schools.filter(s => s.subscription_status === 'trial').length %></div>
+    <div class="stat-label">On Trial</div>
+  </div>
+  <div class="card stat-box">
+    <div class="stat-num"><%= schools.filter(s => s.subscription_status === 'suspended').length %></div>
+    <div class="stat-label">Suspended</div>
+  </div>
 </div>
 
 <div class="card">
+  <h3>Add a new school</h3>
+  <p class="muted">Use this when you're setting a school up yourself (e.g. during a sales call). Schools can also self-register at <code>/signup</code>.</p>
+  <form method="POST" action="/platform/schools">
+    <div class="form-row">
+      <div class="field">
+        <label>School Name</label>
+        <input type="text" name="school_name" required />
+      </div>
+      <div class="field">
+        <label>Admin's Name</label>
+        <input type="text" name="admin_name" required />
+      </div>
+      <div class="field">
+        <label>Admin's Email</label>
+        <input type="email" name="email" required />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Temporary Password</label>
+        <input type="text" name="password" required placeholder="e.g. welcome123" />
+      </div>
+      <div class="field">
+        <label>Trial Length (days)</label>
+        <input type="number" name="trial_days" value="14" />
+      </div>
+      <div class="field" style="flex:0; align-self:flex-end;">
+        <button class="btn btn-gold" type="submit">Create School</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>All Schools</h3>
   <table>
-    <thead><tr><th>School</th><th>Address</th><th>Registered</th></tr></thead>
+    <thead>
+      <tr><th>School</th><th>Students</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
+    </thead>
     <tbody>
     <% schools.forEach(s => { %>
+      <% const trialActive = s.subscription_status === 'trial' && s.trial_ends_at && new Date(s.trial_ends_at) > new Date(); %>
       <tr>
-        <td><%= s.name %></td>
-        <td><%= s.address || '—' %></td>
-        <td><%= s.created_at %></td>
+        <td>
+          <strong><%= s.name %></strong><br/>
+          <span class="muted" style="font-size:0.78rem;">Joined <%= new Date(s.created_at).toLocaleDateString() %></span>
+        </td>
+        <td><%= s.student_count %></td>
+        <td>
+          <% if (s.subscription_status === 'active') { %>
+            <span class="badge badge-green">Active</span>
+          <% } else if (s.subscription_status === 'trial') { %>
+            <span class="badge badge-gold"><%= trialActive ? 'Trial (active)' : 'Trial (expired)' %></span><br/>
+            <span class="muted" style="font-size:0.75rem;"><%= s.trial_ends_at ? new Date(s.trial_ends_at).toLocaleDateString() : '—' %></span>
+          <% } else { %>
+            <span class="badge badge-red">Suspended</span>
+          <% } %>
+        </td>
+        <td style="min-width:160px;">
+          <form method="POST" action="/platform/schools/<%= s.id %>/notes">
+            <input type="text" name="notes" value="<%= s.platform_notes || '' %>" placeholder="e.g. paid via transfer 12 Sep" style="font-size:0.78rem; padding:0.3rem;" onblur="this.form.requestSubmit()" />
+          </form>
+        </td>
+        <td style="min-width:220px;">
+          <form method="POST" action="/platform/schools/<%= s.id %>/status" style="display:inline;">
+            <input type="hidden" name="status" value="active" />
+            <button class="btn btn-sm btn-outline" type="submit" <%= s.subscription_status === 'active' ? 'disabled' : '' %>>Mark Paid</button>
+          </form>
+          <form method="POST" action="/platform/schools/<%= s.id %>/status" style="display:inline;">
+            <input type="hidden" name="status" value="suspended" />
+            <button class="btn btn-sm btn-danger" type="submit" <%= s.subscription_status === 'suspended' ? 'disabled' : '' %>>Suspend</button>
+          </form>
+          <form method="POST" action="/platform/schools/<%= s.id %>/status" style="display:inline;">
+            <input type="hidden" name="status" value="extend_trial" />
+            <input type="hidden" name="extend_days" value="14" />
+            <button class="btn btn-sm btn-outline" type="submit">+14d Trial</button>
+          </form>
+        </td>
       </tr>
     <% }) %>
     </tbody>

@@ -1,0 +1,30 @@
+<h2>Billing &amp; Subscription</h2>
+
+<% const status = school.subscription_status; %>
+<% const trialActive = status === 'trial' && school.trial_ends_at && new Date(school.trial_ends_at) > new Date(); %>
+
+<div class="card">
+  <% if (status === 'active') { %>
+    <span class="badge badge-green">Active</span>
+    <p style="margin-top:0.8rem;">Your school's subscription is active. Thank you!</p>
+  <% } else if (trialActive) { %>
+    <% const daysLeft = Math.ceil((new Date(school.trial_ends_at) - new Date()) / (1000*60*60*24)); %>
+    <span class="badge badge-gold">Free Trial — <%= daysLeft %> day<%= daysLeft === 1 ? '' : 's' %> left</span>
+    <p style="margin-top:0.8rem;">You're currently on a free trial. To keep full access after it ends, make a payment using the details below.</p>
+  <% } else { %>
+    <span class="badge badge-red"><%= status === 'suspended' ? 'Access Suspended' : 'Trial Expired' %></span>
+    <p style="margin-top:0.8rem;">Your school's access to entering scores, marking attendance, and generating broadsheets/report cards is currently paused. Make a payment below and send proof \u2014 access is restored shortly after.</p>
+  <% } %>
+</div>
+
+<div class="card">
+  <h3>How to pay</h3>
+  <p class="muted">Bank transfer, then send proof of payment via WhatsApp \u2014 we'll activate your account shortly after.</p>
+  <table style="max-width:480px;">
+    <tr><td><strong>Bank</strong></td><td>UBA</td></tr>
+    <tr><td><strong>Account Number</strong></td><td>1024314687</td></tr>
+    <tr><td><strong>Account Name</strong></td><td>Nafrika Global Solutions</td></tr>
+  </table>
+  <p style="margin-top:1rem;">Send your proof of payment (screenshot or receipt) to WhatsApp: <strong>081 3845 1272</strong>, along with your school's name so we can match it quickly.</p>
+  <a class="btn btn-gold" href="https://wa.me/2348138451272" target="_blank" rel="noopener">Message us on WhatsApp</a>
+</div>

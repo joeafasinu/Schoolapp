@@ -54,7 +54,10 @@ router.post(
     if (existing) {
       return res.render("auth/signup", { title: "Register Your School", error: "An account with that email already exists.", user: null });
     }
-    const schoolId = await db.insert("INSERT INTO schools (name) VALUES ($1) RETURNING id", [school_name.trim()]);
+    const schoolId = await db.insert("INSERT INTO schools (name, subscription_status, trial_ends_at) VALUES ($1, 'trial', $2) RETURNING id", [
+      school_name.trim(),
+      new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    ]);
     const hash = bcrypt.hashSync(password, 10);
     const userId = await db.insert(
       "INSERT INTO users (school_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, 'school_admin') RETURNING id",
