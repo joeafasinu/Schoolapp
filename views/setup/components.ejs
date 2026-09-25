@@ -1,0 +1,45 @@
+<div class="toolbar"><h2>Grading Components</h2></div>
+<p class="muted">These are the pieces that make up a subject's total score — e.g. CA1, CA2, Exam. Add a component here (like "Note Taking" or "Assignment") and it will appear as a column for every teacher entering scores.</p>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+<% if (total !== 100) { %>
+  <div class="error-msg">Heads up: your components currently add up to <strong><%= total %></strong>, not 100. Scores will still total correctly, but you may want your components to sum to 100 for clean percentages.</div>
+<% } %>
+
+<div class="card" style="max-width:520px;">
+  <h3>Add a Component</h3>
+  <form method="POST" action="/setup/components" class="form-row">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="e.g. Note Taking" required />
+    </div>
+    <div class="field">
+      <label>Max Score</label>
+      <input type="number" step="0.5" min="1" name="max_score" placeholder="10" required />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-gold" type="submit">Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Component</th><th>Max Score</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% components.forEach(c => { %>
+      <tr>
+        <td><input type="text" name="name" form="edit-<%= c.id %>" value="<%= c.name %>" /></td>
+        <td><input type="number" step="0.5" min="1" name="max_score" form="edit-<%= c.id %>" value="<%= c.max_score %>" /></td>
+        <td>
+          <button class="btn btn-sm btn-outline" type="submit" form="edit-<%= c.id %>">Save</button>
+          <form id="edit-<%= c.id %>" method="POST" action="/setup/components/<%= c.id %>"></form>
+          <form method="POST" action="/setup/components/<%= c.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Delete this component? This affects all subjects.')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

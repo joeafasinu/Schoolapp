@@ -1,0 +1,9 @@
+<h2>Report Card Sections</h2>
+<p class="muted">Choose a class to fill in ratings.</p>
+<div class="card">
+  <ul>
+    <% classes.forEach(c => { %>
+      <li style="margin-bottom:0.5rem;"><a href="/traits?class_id=<%= c.id %>"><%= c.name %></a></li>
+    <% }) %>
+  </ul>
+</div>

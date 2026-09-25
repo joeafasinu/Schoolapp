@@ -154,3 +154,24 @@ CREATE TABLE IF NOT EXISTS fee_payments (
 CREATE INDEX IF NOT EXISTS idx_fee_payments_lookup ON fee_payments(term_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_fee_structures_lookup ON fee_structures(term_id, class_id);
 
+-- ===================== CUSTOM REPORT CARD SECTIONS (skills/behavioural ratings) =====================
+CREATE TABLE IF NOT EXISTS report_traits (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Other' CHECK (category IN ('Affective','Psychomotor','Other')),
+  sort_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS student_trait_ratings (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  term_id INTEGER NOT NULL REFERENCES terms(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  trait_id INTEGER NOT NULL REFERENCES report_traits(id),
+  rating TEXT,
+  UNIQUE(term_id, student_id, trait_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trait_ratings_lookup ON student_trait_ratings(term_id, student_id);
+

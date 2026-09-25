@@ -1,0 +1,43 @@
+<div class="toolbar">
+  <h2>Report Card Sections — <%= klass.name %></h2>
+  <span class="badge badge-gold"><%= term.term_name %>, <%= term.session_name %></span>
+</div>
+<p class="muted">Enter a rating for each student and section (e.g. "Excellent", "Good", "A", or a number — whatever scale your school uses). Leave blank to skip.</p>
+
+<div class="card">
+  <form method="GET" action="/traits">
+    <select name="class_id" onchange="this.form.submit()">
+      <% classes.forEach(c => { %>
+        <option value="<%= c.id %>" <%= String(c.id) === String(klass.id) ? 'selected' : '' %>><%= c.name %></option>
+      <% }) %>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <form method="POST" action="/traits/<%= klass.id %>">
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <% traits.forEach(t => { %><th><%= t.name %><br/><span style="font-weight:400; font-size:0.72rem;"><%= t.category %></span></th><% }) %>
+        </tr>
+      </thead>
+      <tbody>
+      <% students.forEach(s => { %>
+        <tr>
+          <td><%= s.full_name %></td>
+          <% traits.forEach(t => { %>
+            <td>
+              <input type="text" name="rating_<%= s.id %>_<%= t.id %>" value="<%= ratingMap[s.id + '_' + t.id] || '' %>" style="width:100px;" />
+            </td>
+          <% }) %>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    </div>
+    <button class="btn btn-gold" type="submit" style="margin-top:1rem;">Save Ratings</button>
+  </form>
+</div>

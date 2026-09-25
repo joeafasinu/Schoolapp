@@ -49,6 +49,19 @@
     <div class="summary-box"><div class="num"><%= attStats.present || 0 %>/<%= attStats.total || 0 %></div><div class="lbl">Days Present</div></div>
   </div>
 
+  <% const ratedTraits = traitRows.filter(t => t.rating); %>
+  <% if (ratedTraits.length > 0) { %>
+    <h3 style="margin-top:1.5rem; font-size:1rem;">Skills &amp; Behavioural Ratings</h3>
+    <table>
+      <thead><tr><th>Category</th><th>Section</th><th>Rating</th></tr></thead>
+      <tbody>
+      <% ratedTraits.forEach(t => { %>
+        <tr><td><%= t.category %></td><td><%= t.name %></td><td><%= t.rating %></td></tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
   <% if (commentRow && (commentRow.teacher_comment || commentRow.admin_comment)) { %>
     <div style="margin-top:1rem; font-size:0.88rem;">
       <% if (commentRow.teacher_comment) { %><p><strong>Class Teacher's Comment:</strong> <%= commentRow.teacher_comment %></p><% } %>

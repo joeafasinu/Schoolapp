@@ -1,0 +1,45 @@
+<div class="toolbar"><h2>Report Card Sections</h2></div>
+<p class="muted">Add extra things you want rated on every student's report card, separate from subject scores — e.g. Punctuality, Handwriting, Sports, Leadership. These show as their own section on the report card and don't affect the academic total or position.</p>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
+<div class="card" style="max-width:560px;">
+  <h3>Add a Section</h3>
+  <form method="POST" action="/setup/traits" class="form-row">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="e.g. Punctuality" required />
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select name="category">
+        <option value="Affective">Affective (attitude/behaviour)</option>
+        <option value="Psychomotor">Psychomotor (physical/practical skills)</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-gold" type="submit">Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Section</th><th>Category</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% traits.forEach(t => { %>
+      <tr>
+        <td><%= t.name %></td>
+        <td><%= t.category %></td>
+        <td>
+          <form method="POST" action="/setup/traits/<%= t.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Delete this section?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (traits.length === 0) { %><tr><td colspan="3" class="muted">No custom sections added yet.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>

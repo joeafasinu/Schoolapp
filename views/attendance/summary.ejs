@@ -1,0 +1,61 @@
+<div class="toolbar">
+  <h2>Attendance Summary</h2>
+  <span class="badge badge-gold"><%= term.term_name %>, <%= term.session_name %></span>
+</div>
+
+<div class="card">
+  <form method="GET" action="/attendance/summary" class="form-row">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" name="date" value="<%= date %>" onchange="this.form.submit()" />
+    </div>
+  </form>
+</div>
+
+<div class="card-grid" style="margin-bottom:1rem;">
+  <div class="card stat-box"><div class="stat-num"><%= totals.roll %></div><div class="stat-label">Total Students</div></div>
+  <div class="card stat-box"><div class="stat-num" style="color:var(--green);"><%= totals.present %></div><div class="stat-label">Present</div></div>
+  <div class="card stat-box"><div class="stat-num" style="color:var(--red);"><%= totals.absent %></div><div class="stat-label">Absent</div></div>
+  <div class="card stat-box"><div class="stat-num"><%= totals.rate %>%</div><div class="stat-label">Attendance Rate</div></div>
+</div>
+
+<div class="card">
+  <h3>By Class — <%= date %></h3>
+  <table>
+    <thead><tr><th>Class</th><th>Roll</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>Not Yet Marked</th></tr></thead>
+    <tbody>
+    <% byClass.forEach(c => { %>
+      <% const notMarked = Number(c.roll) - Number(c.marked); %>
+      <tr>
+        <td><%= c.class_name %></td>
+        <td><%= c.roll %></td>
+        <td><%= c.present %></td>
+        <td><%= c.absent %></td>
+        <td><%= c.late %></td>
+        <td><%= c.excused %></td>
+        <td><% if (notMarked > 0) { %><span class="badge badge-red"><%= notMarked %></span><% } else { %>—<% } %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Last 30 Recorded Days (School-Wide)</h3>
+  <% if (trend.length === 0) { %>
+    <p class="muted">No attendance recorded yet this term.</p>
+  <% } else { %>
+    <table>
+      <thead><tr><th>Date</th><th>Present</th><th>Absent</th></tr></thead>
+      <tbody>
+      <% trend.forEach(t => { %>
+        <tr>
+          <td><a href="/attendance/summary?date=<%= new Date(t.date).toISOString().slice(0,10) %>"><%= new Date(t.date).toLocaleDateString() %></a></td>
+          <td><%= t.present %></td>
+          <td><%= t.absent %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

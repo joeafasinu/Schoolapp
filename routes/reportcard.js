@@ -79,7 +79,16 @@ async function computeStudentReport(schoolId, studentId, termId) {
 
   const commentRow = await db.get("SELECT * FROM comments WHERE term_id = $1 AND student_id = $2", [termId, studentId]);
 
-  return { student, klass, school, term, subjectRows, grandTotal, average, position, classSize, attStats, commentRow };
+  const traitRows = await db.all(
+    `SELECT rt.name, rt.category, str.rating
+     FROM report_traits rt
+     LEFT JOIN student_trait_ratings str ON str.trait_id = rt.id AND str.term_id = $1 AND str.student_id = $2
+     WHERE rt.school_id = $3
+     ORDER BY rt.category, rt.sort_order, rt.id`,
+    [termId, studentId, schoolId]
+  );
+
+  return { student, klass, school, term, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows };
 }
 
 router.get(
@@ -134,7 +143,7 @@ router.get(
     const data = await computeStudentReport(schoolId, req.params.studentId, term.id);
     if (!data) return res.render("error", { message: "Student not found." });
 
-    const { student, klass, school, subjectRows, grandTotal, average, position, classSize, attStats, commentRow } = data;
+    const { student, klass, school, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows } = data;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${student.full_name.replace(/\s+/g, "_")}_ReportCard.pdf"`);
@@ -198,6 +207,23 @@ router.get(
       `Present: ${attStats.present || 0}   Absent: ${attStats.absent || 0}   Late: ${attStats.late || 0}   Total Days Recorded: ${attStats.total || 0}`,
       40
     );
+
+    const ratedTraits = traitRows.filter((t) => t.rating);
+    if (ratedTraits.length > 0) {
+      doc.moveDown(1);
+      doc.font("Helvetica-Bold").text("Skills & Behavioural Ratings", 40);
+      doc.font("Helvetica").fontSize(10);
+      let currentCategory = null;
+      ratedTraits.forEach((t) => {
+        if (t.category !== currentCategory) {
+          currentCategory = t.category;
+          doc.moveDown(0.3);
+          doc.font("Helvetica-Bold").fontSize(9).fillColor("#667085").text(currentCategory, 40);
+          doc.font("Helvetica").fontSize(10).fillColor("#1A1F36");
+        }
+        doc.text(`${t.name}: ${t.rating}`, 50);
+      });
+    }
 
     if (commentRow && (commentRow.teacher_comment || commentRow.admin_comment)) {
       doc.moveDown(1);

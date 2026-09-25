@@ -419,4 +419,82 @@ router.post(
   })
 );
 
+// ===================== SCORE COMPONENTS (CA1, CA2, Exam, Note, etc.) =====================
+router.get(
+  "/components",
+  asyncHandler(async (req, res) => {
+    const components = await db.all("SELECT * FROM score_components WHERE school_id = $1 ORDER BY sort_order, id", [schoolId(req)]);
+    const total = components.reduce((sum, c) => sum + Number(c.max_score), 0);
+    res.render("setup/components", { title: "Grading Components", components, total, error: req.query.error || null });
+  })
+);
+
+router.post(
+  "/components",
+  asyncHandler(async (req, res) => {
+    const { name, max_score } = req.body;
+    if (!name || !max_score) return res.redirect("/setup/components?error=" + encodeURIComponent("Name and max score are required."));
+    const maxCount = await db.get("SELECT COALESCE(MAX(sort_order), 0) as m FROM score_components WHERE school_id = $1", [schoolId(req)]);
+    await db.run("INSERT INTO score_components (school_id, name, max_score, sort_order) VALUES ($1, $2, $3, $4)", [
+      schoolId(req), name.trim(), parseFloat(max_score), Number(maxCount.m) + 1,
+    ]);
+    res.redirect("/setup/components");
+  })
+);
+
+router.post(
+  "/components/:id",
+  asyncHandler(async (req, res) => {
+    const { name, max_score } = req.body;
+    await db.run("UPDATE score_components SET name = $1, max_score = $2 WHERE id = $3 AND school_id = $4", [
+      name.trim(), parseFloat(max_score), req.params.id, schoolId(req),
+    ]);
+    res.redirect("/setup/components");
+  })
+);
+
+router.delete(
+  "/components/:id",
+  asyncHandler(async (req, res) => {
+    await friendlyDelete(
+      "DELETE FROM score_components WHERE id = $1 AND school_id = $2",
+      [req.params.id, schoolId(req)],
+      res, "/setup/components", "grading component"
+    );
+  })
+);
+
+// ===================== CUSTOM REPORT CARD TRAITS (skills/behaviour ratings) =====================
+router.get(
+  "/traits",
+  asyncHandler(async (req, res) => {
+    const traits = await db.all("SELECT * FROM report_traits WHERE school_id = $1 ORDER BY category, sort_order, id", [schoolId(req)]);
+    res.render("setup/traits", { title: "Report Card Sections", traits, error: req.query.error || null });
+  })
+);
+
+router.post(
+  "/traits",
+  asyncHandler(async (req, res) => {
+    const { name, category } = req.body;
+    if (!name) return res.redirect("/setup/traits?error=" + encodeURIComponent("Name is required."));
+    const maxCount = await db.get("SELECT COALESCE(MAX(sort_order), 0) as m FROM report_traits WHERE school_id = $1", [schoolId(req)]);
+    await db.run("INSERT INTO report_traits (school_id, name, category, sort_order) VALUES ($1, $2, $3, $4)", [
+      schoolId(req), name.trim(), category || "Other", Number(maxCount.m) + 1,
+    ]);
+    res.redirect("/setup/traits");
+  })
+);
+
+router.delete(
+  "/traits/:id",
+  asyncHandler(async (req, res) => {
+    await friendlyDelete(
+      "DELETE FROM report_traits WHERE id = $1 AND school_id = $2",
+      [req.params.id, schoolId(req)],
+      res, "/setup/traits", "report card section"
+    );
+  })
+);
+
 module.exports = router;

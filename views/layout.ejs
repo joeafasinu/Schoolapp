@@ -28,14 +28,18 @@
         <a href="/setup/teachers">Teachers</a>
         <a href="/setup/bursars">Bursars</a>
         <a href="/setup/terms">Terms</a>
+        <a href="/setup/components">Grading</a>
+        <a href="/setup/traits">Report Sections</a>
         <a href="/setup/branding">Branding</a>
         <a href="/broadsheet">Broadsheet</a>
+        <a href="/attendance/summary">Attendance Summary</a>
         <a href="/fees/structure">Fee Structure</a>
         <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'teacher') { %>
         <a href="/scores">Enter Scores</a>
         <a href="/attendance">Attendance</a>
+        <a href="/traits">Report Ratings</a>
         <a href="/billing">Billing</a>
       <% } %>
       <% if (user.role === 'bursar') { %>

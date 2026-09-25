@@ -3,6 +3,8 @@
   <span class="badge badge-gold"><%= term.term_name %>, <%= term.session_name %></span>
 </div>
 
+<% if (typeof error !== 'undefined' && error) { %><div class="error-msg"><%= error %></div><% } %>
+
 <div class="card">
   <form method="GET" action="/attendance" class="form-row">
     <div class="field">
@@ -20,6 +22,17 @@
   </form>
 </div>
 
+<% if (locked) { %>
+  <div class="card">
+    <div class="error-msg" style="margin:0;">
+      <% if (date !== todayStr) { %>
+        Teachers can only mark attendance for today (<%= todayStr %>). Ask your school admin if a past date needs correcting.
+      <% } else { %>
+        Attendance marking closes at <strong>12:00 PM</strong> each day and reopens tomorrow morning. Ask your school admin if today's attendance needs a correction.
+      <% } %>
+    </div>
+  </div>
+<% } else { %>
 <div class="card">
   <form method="POST" action="/attendance/<%= klass.id %>">
     <input type="hidden" name="date" value="<%= date %>" />
@@ -42,3 +55,4 @@
     <button class="btn btn-gold" type="submit" style="margin-top:1rem;">Save Attendance for <%= date %></button>
   </form>
 </div>
+<% } %>
