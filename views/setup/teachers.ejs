@@ -1,5 +1,7 @@
 <div class="toolbar"><h2>Teachers</h2></div>
 
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
 <div class="card">
   <h3>Add a new teacher</h3>
   <form method="POST" action="/setup/teachers" class="form-row">

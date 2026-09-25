@@ -1,5 +1,7 @@
 <div class="toolbar"><h2>Subjects</h2></div>
 
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
 <div class="card">
   <h3>Add a new subject</h3>
   <form method="POST" action="/setup/subjects" class="form-row">

@@ -1,7 +1,8 @@
 <div class="toolbar"><h2>Bursars</h2></div>
 <p class="muted">Bursars can record fee payments, manage the fee structure, and view the fee dashboard — but not scores, attendance, or other setup areas.</p>
 
-<% if (error === 'exists') { %><div class="error-msg">An account with that email already exists.</div><% } %>
+<% if (error === 'exists') { %><div class="error-msg">An account with that email already exists.</div>
+<% } else if (error) { %><div class="error-msg"><%= error %></div><% } %>
 
 <div class="card">
   <h3>Add a new bursar</h3>

@@ -2,6 +2,8 @@
   <h2>Classes</h2>
 </div>
 
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
 <div class="card">
   <h3>Add a new class</h3>
   <form method="POST" action="/setup/classes" class="form-row">

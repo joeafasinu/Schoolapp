@@ -3,6 +3,8 @@
   <a href="/setup/students/import" class="btn btn-outline btn-sm">Bulk Import (CSV)</a>
 </div>
 
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+
 <div class="card">
   <h3>Add a new student</h3>
   <form method="POST" action="/setup/students">

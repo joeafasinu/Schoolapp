@@ -5,6 +5,7 @@ const { parse } = require("csv-parse/sync");
 const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
+const { friendlyDelete } = require("../utils/friendlyDelete");
 const router = express.Router();
 
 const upload = multer({
@@ -42,7 +43,7 @@ router.get(
       [schoolId(req)]
     );
     const teachers = await db.all("SELECT * FROM users WHERE school_id = $1 AND role = 'teacher'", [schoolId(req)]);
-    res.render("setup/classes", { title: "Classes", classes, teachers });
+    res.render("setup/classes", { title: "Classes", classes, teachers, error: req.query.error || null });
   })
 );
 
@@ -60,8 +61,11 @@ router.post(
 router.delete(
   "/classes/:id",
   asyncHandler(async (req, res) => {
-    await db.run("DELETE FROM classes WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
-    res.redirect("/setup/classes");
+    await friendlyDelete(
+      "DELETE FROM classes WHERE id = $1 AND school_id = $2",
+      [req.params.id, schoolId(req)],
+      res, "/setup/classes", "class"
+    );
   })
 );
 
@@ -70,7 +74,7 @@ router.get(
   "/subjects",
   asyncHandler(async (req, res) => {
     const subjects = await db.all("SELECT * FROM subjects WHERE school_id = $1 ORDER BY name", [schoolId(req)]);
-    res.render("setup/subjects", { title: "Subjects", subjects });
+    res.render("setup/subjects", { title: "Subjects", subjects, error: req.query.error || null });
   })
 );
 
@@ -85,8 +89,11 @@ router.post(
 router.delete(
   "/subjects/:id",
   asyncHandler(async (req, res) => {
-    await db.run("DELETE FROM subjects WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
-    res.redirect("/setup/subjects");
+    await friendlyDelete(
+      "DELETE FROM subjects WHERE id = $1 AND school_id = $2",
+      [req.params.id, schoolId(req)],
+      res, "/setup/subjects", "subject"
+    );
   })
 );
 
@@ -108,7 +115,7 @@ router.get(
         [schoolId(req)]
       );
     }
-    res.render("setup/students", { title: "Students", students, classes, classFilter });
+    res.render("setup/students", { title: "Students", students, classes, classFilter, error: req.query.error || null });
   })
 );
 
@@ -128,8 +135,11 @@ router.post(
 router.delete(
   "/students/:id",
   asyncHandler(async (req, res) => {
-    await db.run("DELETE FROM students WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
-    res.redirect("/setup/students");
+    await friendlyDelete(
+      "DELETE FROM students WHERE id = $1 AND school_id = $2",
+      [req.params.id, schoolId(req)],
+      res, "/setup/students", "student"
+    );
   })
 );
 
@@ -254,7 +264,7 @@ router.get(
        WHERE ta.school_id = $1 ORDER BY u.name`,
       [schoolId(req)]
     );
-    res.render("setup/teachers", { title: "Teachers", teachers, classes, subjects, assignments });
+    res.render("setup/teachers", { title: "Teachers", teachers, classes, subjects, assignments, error: req.query.error || null });
   })
 );
 
@@ -275,8 +285,11 @@ router.post(
 router.delete(
   "/teachers/:id",
   asyncHandler(async (req, res) => {
-    await db.run("DELETE FROM users WHERE id = $1 AND school_id = $2 AND role = 'teacher'", [req.params.id, schoolId(req)]);
-    res.redirect("/setup/teachers");
+    await friendlyDelete(
+      "DELETE FROM users WHERE id = $1 AND school_id = $2 AND role = 'teacher'",
+      [req.params.id, schoolId(req)],
+      res, "/setup/teachers", "teacher"
+    );
   })
 );
 
@@ -306,8 +319,11 @@ router.post(
 router.delete(
   "/bursars/:id",
   asyncHandler(async (req, res) => {
-    await db.run("DELETE FROM users WHERE id = $1 AND school_id = $2 AND role = 'bursar'", [req.params.id, schoolId(req)]);
-    res.redirect("/setup/bursars");
+    await friendlyDelete(
+      "DELETE FROM users WHERE id = $1 AND school_id = $2 AND role = 'bursar'",
+      [req.params.id, schoolId(req)],
+      res, "/setup/bursars", "bursar"
+    );
   })
 );
 
