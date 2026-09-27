@@ -3,14 +3,14 @@ const ExcelJS = require("exceljs");
 const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
-const { buildBroadsheet, gradeFor } = require("../utils/grading");
+const { buildBroadsheet, gradeFor, getGradeBands, getWeightGroups, computeWeightedTotal } = require("../utils/grading");
 const router = express.Router();
 
 async function getActiveTerm(schoolId) {
   return db.get("SELECT * FROM terms WHERE school_id = $1 AND is_active = 1 ORDER BY id DESC LIMIT 1", [schoolId]);
 }
 
-async function computeBroadsheetData(classId, termId) {
+async function computeBroadsheetData(schoolId, classId, termId) {
   const klass = await db.get("SELECT * FROM classes WHERE id = $1", [classId]);
   const students = await db.all("SELECT * FROM students WHERE class_id = $1 ORDER BY full_name", [classId]);
   const subjects = await db.all(
@@ -20,19 +20,34 @@ async function computeBroadsheetData(classId, termId) {
     [classId]
   );
 
+  const components = await db.all("SELECT * FROM score_components WHERE school_id = $1", [schoolId]);
+  const weightGroups = await getWeightGroups(schoolId);
+
   let rawScores = [];
   const studentIds = students.map((s) => s.id);
   if (studentIds.length) {
     rawScores = await db.all(
-      `SELECT student_id, subject_id, SUM(score) as total
-       FROM scores WHERE term_id = $1 AND student_id = ANY($2::int[])
-       GROUP BY student_id, subject_id`,
+      `SELECT student_id, subject_id, component_id, score
+       FROM scores WHERE term_id = $1 AND student_id = ANY($2::int[])`,
       [termId, studentIds]
     );
   }
 
+  // Group raw scores by student+subject so we can run the weighting engine per subject.
+  const rawByStudentSubject = new Map(); // key -> [{ componentId, groupName, maxScore, score }]
+  rawScores.forEach((r) => {
+    const key = `${r.student_id}_${r.subject_id}`;
+    const comp = components.find((c) => c.id === r.component_id);
+    if (!comp) return;
+    const list = rawByStudentSubject.get(key) || [];
+    list.push({ componentId: comp.id, groupName: comp.group_name, maxScore: Number(comp.max_score), score: Number(r.score) });
+    rawByStudentSubject.set(key, list);
+  });
+
   const scoresByStudentSubject = new Map();
-  rawScores.forEach((r) => scoresByStudentSubject.set(`${r.student_id}_${r.subject_id}`, Number(r.total)));
+  rawByStudentSubject.forEach((componentScores, key) => {
+    scoresByStudentSubject.set(key, computeWeightedTotal(componentScores, weightGroups));
+  });
 
   const rows = buildBroadsheet(students, subjects, scoresByStudentSubject);
   return { klass, subjects, rows };
@@ -55,8 +70,9 @@ router.get(
     const schoolId = req.session.user.school_id;
     const term = await getActiveTerm(schoolId);
     if (!term) return res.render("error", { message: "No active term set." });
-    const { klass, subjects, rows } = await computeBroadsheetData(req.params.classId, term.id);
-    res.render("broadsheet/view", { title: "Broadsheet", klass, subjects, rows, term, gradeFor });
+    const { klass, subjects, rows } = await computeBroadsheetData(schoolId, req.params.classId, term.id);
+    const bands = await getGradeBands(schoolId);
+    res.render("broadsheet/view", { title: "Broadsheet", klass, subjects, rows, term, gradeFor: (pct) => gradeFor(pct, bands) });
   })
 );
 
@@ -67,7 +83,7 @@ router.get(
     const schoolId = req.session.user.school_id;
     const term = await getActiveTerm(schoolId);
     if (!term) return res.render("error", { message: "No active term set." });
-    const { klass, subjects, rows } = await computeBroadsheetData(req.params.classId, term.id);
+    const { klass, subjects, rows } = await computeBroadsheetData(schoolId, req.params.classId, term.id);
     const school = await db.get("SELECT * FROM schools WHERE id = $1", [schoolId]);
 
     const workbook = new ExcelJS.Workbook();

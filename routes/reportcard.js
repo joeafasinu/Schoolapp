@@ -3,7 +3,7 @@ const PDFDocument = require("pdfkit");
 const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
-const { gradeFor } = require("../utils/grading");
+const { gradeFor, getGradeBands, getCommentBank, getWeightGroups, computeWeightedTotal } = require("../utils/grading");
 const router = express.Router();
 
 async function getActiveTerm(schoolId) {
@@ -24,43 +24,58 @@ async function computeStudentReport(schoolId, studentId, termId) {
     [student.class_id]
   );
   const components = await db.all("SELECT * FROM score_components WHERE school_id = $1 ORDER BY sort_order", [schoolId]);
+  const weightGroups = await getWeightGroups(schoolId);
+  const classmates = await db.all("SELECT id FROM students WHERE class_id = $1", [student.class_id]);
+  const classmateIds = classmates.map((c) => c.id);
 
-  const subjectRows = [];
-  for (const subj of subjects) {
-    const compScores = [];
-    for (const c of components) {
-      const row = await db.get(
-        "SELECT score FROM scores WHERE term_id = $1 AND student_id = $2 AND subject_id = $3 AND component_id = $4",
-        [termId, studentId, subj.id, c.id]
-      );
-      compScores.push({ name: c.name, score: row ? Number(row.score) : null });
-    }
-    const total = compScores.reduce((sum, c) => sum + (c.score || 0), 0);
-    subjectRows.push({ subjectName: subj.name, compScores, total });
+  // Fetch every raw score for the whole class in one go, so the ranking below uses
+  // exactly the same weighted-total calculation as what's displayed for this student -
+  // otherwise position could disagree with the visible subject totals.
+  let allScores = [];
+  if (classmateIds.length) {
+    allScores = await db.all(
+      "SELECT student_id, subject_id, component_id, score FROM scores WHERE term_id = $1 AND student_id = ANY($2::int[])",
+      [termId, classmateIds]
+    );
   }
+  const rawByStudentSubject = new Map();
+  allScores.forEach((r) => {
+    const comp = components.find((c) => c.id === r.component_id);
+    if (!comp) return;
+    const key = `${r.student_id}_${r.subject_id}`;
+    const list = rawByStudentSubject.get(key) || [];
+    list.push({ componentId: comp.id, name: comp.name, groupName: comp.group_name, maxScore: Number(comp.max_score), score: Number(r.score) });
+    rawByStudentSubject.set(key, list);
+  });
+
+  // This student's subject-by-subject breakdown (component scores + weighted total)
+  const subjectRows = subjects.map((subj) => {
+    const compScores = rawByStudentSubject.get(`${studentId}_${subj.id}`) || [];
+    // Ensure every configured component shows even if no score entered yet (keeps report card layout stable)
+    const displayScores = components.map((c) => {
+      const found = compScores.find((cs) => cs.componentId === c.id);
+      return { name: c.name, score: found ? found.score : null };
+    });
+    const total = computeWeightedTotal(compScores, weightGroups);
+    return { subjectName: subj.name, compScores: displayScores, total };
+  });
 
   const grandTotal = subjectRows.reduce((sum, r) => sum + r.total, 0);
   const average = subjectRows.length ? Math.round((grandTotal / subjectRows.length) * 100) / 100 : 0;
 
-  // class position: need all students in the class
-  const classmates = await db.all("SELECT id FROM students WHERE class_id = $1", [student.class_id]);
-  const averages = [];
-  for (const cm of classmates) {
-    const rowTotals = [];
-    for (const subj of subjects) {
-      const r = await db.get("SELECT SUM(score) as t FROM scores WHERE term_id = $1 AND student_id = $2 AND subject_id = $3", [
-        termId, cm.id, subj.id,
-      ]);
-      rowTotals.push(r && r.t !== null ? Number(r.t) : 0);
-    }
-    const avg = rowTotals.length ? rowTotals.reduce((a, b) => a + b, 0) / rowTotals.length : 0;
-    averages.push({ studentId: cm.id, avg });
-  }
+  // Class position, using the identical weighted-total calculation for every classmate
+  const averages = classmates.map((cm) => {
+    const subjectTotals = subjects.map((subj) => {
+      const compScores = rawByStudentSubject.get(`${cm.id}_${subj.id}`) || [];
+      return computeWeightedTotal(compScores, weightGroups);
+    });
+    const avg = subjectTotals.length ? subjectTotals.reduce((a, b) => a + b, 0) / subjectTotals.length : 0;
+    return { studentId: cm.id, avg };
+  });
   averages.sort((a, b) => b.avg - a.avg);
   const position = averages.findIndex((a) => a.studentId === Number(studentId)) + 1;
   const classSize = classmates.length;
 
-  // attendance summary
   const attStatsRow = await db.get(
     `SELECT
        SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
@@ -88,7 +103,9 @@ async function computeStudentReport(schoolId, studentId, termId) {
     [termId, studentId, schoolId]
   );
 
-  return { student, klass, school, term, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows };
+  const bands = await getGradeBands(schoolId);
+
+  return { student, klass, school, term, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows, bands };
 }
 
 router.get(
@@ -100,7 +117,13 @@ router.get(
     if (!term) return res.render("error", { message: "No active term set." });
     const data = await computeStudentReport(schoolId, req.params.studentId, term.id);
     if (!data) return res.render("error", { message: "Student not found." });
-    res.render("reportcard/view", { title: "Report Card", ...data, gradeFor });
+    const commentBank = await getCommentBank(schoolId);
+    const currentGrade = gradeFor(data.average, data.bands).grade;
+    res.render("reportcard/view", {
+      title: "Report Card", ...data,
+      gradeFor: (pct) => gradeFor(pct, data.bands),
+      commentBank, currentGrade,
+    });
   })
 );
 
@@ -143,7 +166,7 @@ router.get(
     const data = await computeStudentReport(schoolId, req.params.studentId, term.id);
     if (!data) return res.render("error", { message: "Student not found." });
 
-    const { student, klass, school, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows } = data;
+    const { student, klass, school, subjectRows, grandTotal, average, position, classSize, attStats, commentRow, traitRows, bands } = data;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${student.full_name.replace(/\s+/g, "_")}_ReportCard.pdf"`);
@@ -198,7 +221,8 @@ router.get(
     doc.strokeColor("#1E2761").lineWidth(1).moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown(0.5);
     doc.font("Helvetica-Bold").fontSize(11);
-    doc.text(`Grand Total: ${grandTotal}      Average: ${average}      Grade: ${gradeFor(average).grade} (${gradeFor(average).remark})`, 40);
+    const grade = gradeFor(average, bands);
+    doc.text(`Grand Total: ${grandTotal}      Average: ${average}      Grade: ${grade.grade} (${grade.remark})`, 40);
 
     doc.moveDown(1);
     doc.font("Helvetica-Bold").text("Attendance Summary", 40);

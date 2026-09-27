@@ -69,7 +69,12 @@
     </div>
   <% } %>
 
-  <p class="grade-key">Grading: A = 70–100 (Excellent) · B = 60–69 (Very Good) · C = 50–59 (Good) · D = 45–49 (Fair) · E = 40–44 (Pass) · F = 0–39 (Fail)</p>
+  <p class="grade-key">
+    Grading:
+    <% bands.forEach((b, i) => { %>
+      <%= b.grade %> = <%= b.min %><%= i === 0 ? ' and above' : ('–' + (bands[i-1].min - 1)) %> (<%= b.remark %>)<%= i < bands.length - 1 ? ' · ' : '' %>
+    <% }) %>
+  </p>
 
   <div class="sign-row">
     <div class="sign-box">Class Teacher's Signature</div>
@@ -80,10 +85,20 @@
 <div class="card no-print" style="max-width:800px; margin:1.5rem auto;">
   <h3>Add / Edit Comments</h3>
   <p class="muted">These appear on the printed report card above.</p>
+  <% if (commentBank[currentGrade] && commentBank[currentGrade].length > 0) { %>
+    <div class="field">
+      <label>Quick-pick from comment bank (grade <%= currentGrade %>)</label>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        <% commentBank[currentGrade].forEach((c, i) => { %>
+          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('teacher_comment_field').value = <%- JSON.stringify(c) %>;"><%= c.length > 40 ? c.slice(0, 40) + '…' : c %></button>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
   <form method="POST" action="/reportcard/<%= student.id %>/comment">
     <div class="field">
       <label>Class Teacher's Comment</label>
-      <textarea name="teacher_comment" rows="2"><%= commentRow ? (commentRow.teacher_comment || '') : '' %></textarea>
+      <textarea id="teacher_comment_field" name="teacher_comment" rows="2"><%= commentRow ? (commentRow.teacher_comment || '') : '' %></textarea>
     </div>
     <% if (user.role === 'school_admin') { %>
     <div class="field">

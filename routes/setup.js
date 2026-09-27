@@ -6,6 +6,7 @@ const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const { friendlyDelete } = require("../utils/friendlyDelete");
+const { getGradeBands } = require("../utils/grading");
 const router = express.Router();
 
 const upload = multer({
@@ -425,18 +426,20 @@ router.get(
   asyncHandler(async (req, res) => {
     const components = await db.all("SELECT * FROM score_components WHERE school_id = $1 ORDER BY sort_order, id", [schoolId(req)]);
     const total = components.reduce((sum, c) => sum + Number(c.max_score), 0);
-    res.render("setup/components", { title: "Grading Components", components, total, error: req.query.error || null });
+    const weightGroups = await db.all("SELECT * FROM weight_groups WHERE school_id = $1 ORDER BY group_name", [schoolId(req)]);
+    const weightTotal = weightGroups.reduce((sum, g) => sum + Number(g.weight_percent), 0);
+    res.render("setup/components", { title: "Grading Components", components, total, weightGroups, weightTotal, error: req.query.error || null });
   })
 );
 
 router.post(
   "/components",
   asyncHandler(async (req, res) => {
-    const { name, max_score } = req.body;
+    const { name, max_score, group_name } = req.body;
     if (!name || !max_score) return res.redirect("/setup/components?error=" + encodeURIComponent("Name and max score are required."));
     const maxCount = await db.get("SELECT COALESCE(MAX(sort_order), 0) as m FROM score_components WHERE school_id = $1", [schoolId(req)]);
-    await db.run("INSERT INTO score_components (school_id, name, max_score, sort_order) VALUES ($1, $2, $3, $4)", [
-      schoolId(req), name.trim(), parseFloat(max_score), Number(maxCount.m) + 1,
+    await db.run("INSERT INTO score_components (school_id, name, max_score, sort_order, group_name) VALUES ($1, $2, $3, $4, $5)", [
+      schoolId(req), name.trim(), parseFloat(max_score), Number(maxCount.m) + 1, (group_name || "").trim() || null,
     ]);
     res.redirect("/setup/components");
   })
@@ -445,9 +448,9 @@ router.post(
 router.post(
   "/components/:id",
   asyncHandler(async (req, res) => {
-    const { name, max_score } = req.body;
-    await db.run("UPDATE score_components SET name = $1, max_score = $2 WHERE id = $3 AND school_id = $4", [
-      name.trim(), parseFloat(max_score), req.params.id, schoolId(req),
+    const { name, max_score, group_name } = req.body;
+    await db.run("UPDATE score_components SET name = $1, max_score = $2, group_name = $3 WHERE id = $4 AND school_id = $5", [
+      name.trim(), parseFloat(max_score), (group_name || "").trim() || null, req.params.id, schoolId(req),
     ]);
     res.redirect("/setup/components");
   })
@@ -494,6 +497,74 @@ router.delete(
       [req.params.id, schoolId(req)],
       res, "/setup/traits", "report card section"
     );
+  })
+);
+
+// ===================== GRADING SCALE + COMMENT BANK =====================
+router.get(
+  "/grading-scale",
+  asyncHandler(async (req, res) => {
+    const configuredBands = await db.all("SELECT * FROM grade_bands WHERE school_id = $1 ORDER BY min_score DESC", [schoolId(req)]);
+    const bands = await getGradeBands(schoolId(req)); // shows defaults if nothing configured yet, so the page is never empty
+    const usingDefaults = configuredBands.length === 0;
+    const commentBank = await db.all("SELECT * FROM comment_bank WHERE school_id = $1 ORDER BY grade, sort_order, id", [schoolId(req)]);
+    res.render("setup/grading_scale", { title: "Grading Scale", bands, usingDefaults, commentBank, error: req.query.error || null });
+  })
+);
+
+router.post(
+  "/grading-scale",
+  asyncHandler(async (req, res) => {
+    // Replace the whole scale at once - simpler and safer than editing individual rows,
+    // since bands must stay internally consistent (no gaps/overlaps the admin has to manage).
+    await db.run("DELETE FROM grade_bands WHERE school_id = $1", [schoolId(req)]);
+    const grades = [].concat(req.body.grade || []);
+    const mins = [].concat(req.body.min_score || []);
+    const remarks = [].concat(req.body.remark || []);
+    for (let i = 0; i < grades.length; i++) {
+      if (!grades[i] || mins[i] === "") continue;
+      await db.run("INSERT INTO grade_bands (school_id, min_score, grade, remark, sort_order) VALUES ($1, $2, $3, $4, $5)", [
+        schoolId(req), parseFloat(mins[i]), grades[i].trim(), remarks[i] || "", i,
+      ]);
+    }
+    res.redirect("/setup/grading-scale");
+  })
+);
+
+router.post(
+  "/comment-bank",
+  asyncHandler(async (req, res) => {
+    const { grade, comment_text } = req.body;
+    if (!grade || !comment_text) return res.redirect("/setup/grading-scale?error=" + encodeURIComponent("Grade and comment text are required."));
+    await db.run("INSERT INTO comment_bank (school_id, grade, comment_text) VALUES ($1, $2, $3)", [
+      schoolId(req), grade.trim(), comment_text.trim(),
+    ]);
+    res.redirect("/setup/grading-scale");
+  })
+);
+
+router.delete(
+  "/comment-bank/:id",
+  asyncHandler(async (req, res) => {
+    await db.run("DELETE FROM comment_bank WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
+    res.redirect("/setup/grading-scale");
+  })
+);
+
+// ===================== WEIGHT GROUPS (part of grading components config) =====================
+router.post(
+  "/weight-groups",
+  asyncHandler(async (req, res) => {
+    const groupNames = [].concat(req.body.group_name || []);
+    const weights = [].concat(req.body.weight_percent || []);
+    await db.run("DELETE FROM weight_groups WHERE school_id = $1", [schoolId(req)]);
+    for (let i = 0; i < groupNames.length; i++) {
+      if (!groupNames[i] || weights[i] === "") continue;
+      await db.run("INSERT INTO weight_groups (school_id, group_name, weight_percent) VALUES ($1, $2, $3)", [
+        schoolId(req), groupNames[i].trim(), parseFloat(weights[i]),
+      ]);
+    }
+    res.redirect("/setup/components");
   })
 );
 

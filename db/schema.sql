@@ -175,3 +175,35 @@ CREATE TABLE IF NOT EXISTS student_trait_ratings (
 
 CREATE INDEX IF NOT EXISTS idx_trait_ratings_lookup ON student_trait_ratings(term_id, student_id);
 
+-- ===================== PHASE 1: CONFIGURABLE GRADING =====================
+-- Per-school grading scale (e.g. A=70-100). Falls back to a sensible built-in default if a school hasn't set one up.
+CREATE TABLE IF NOT EXISTS grade_bands (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  min_score NUMERIC(5,2) NOT NULL,
+  grade TEXT NOT NULL,
+  remark TEXT,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Comment bank: reusable suggested comments tied to a grade letter, editable by school admin.
+CREATE TABLE IF NOT EXISTS comment_bank (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  grade TEXT NOT NULL,
+  comment_text TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Optional grouping of score components (e.g. "CA", "Exam") so a school can weight groups
+-- independently of raw max-score allocation. NULL group_name = ungrouped (old behaviour, untouched).
+ALTER TABLE score_components ADD COLUMN IF NOT EXISTS group_name TEXT;
+
+CREATE TABLE IF NOT EXISTS weight_groups (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  group_name TEXT NOT NULL,
+  weight_percent NUMERIC(5,2) NOT NULL,
+  UNIQUE(school_id, group_name)
+);
+
