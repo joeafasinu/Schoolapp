@@ -1,15 +1,24 @@
 <div class="toolbar">
   <h2>Classes</h2>
+  <a href="/setup/levels" class="btn btn-outline btn-sm">Manage via Levels &amp; Classes →</a>
 </div>
+<p class="muted">Tip: if your classes are grouped into levels (Nursery, Primary, JSS, SSS), it's usually easier to add sub-classes and their subjects from <a href="/setup/levels">Levels &amp; Classes</a> — subjects get assigned automatically there instead of one class at a time.</p>
 
 <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
 
 <div class="card">
-  <h3>Add a new class</h3>
+  <h3>Add a standalone class</h3>
   <form method="POST" action="/setup/classes" class="form-row">
     <div class="field">
       <label>Class Name</label>
       <input type="text" name="name" placeholder="e.g. JSS 1A" required />
+    </div>
+    <div class="field">
+      <label>Level (optional)</label>
+      <select name="level_id">
+        <option value="">— None (standalone) —</option>
+        <% levels.forEach(l => { %><option value="<%= l.id %>"><%= l.name %></option><% }) %>
+      </select>
     </div>
     <div class="field">
       <label>Form Teacher (optional)</label>
@@ -26,11 +35,12 @@
 
 <div class="card">
   <table>
-    <thead><tr><th>Class</th><th>Form Teacher</th><th>Students</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Class</th><th>Level</th><th>Form Teacher</th><th>Students</th><th>Actions</th></tr></thead>
     <tbody>
     <% classes.forEach(c => { %>
       <tr>
         <td><%= c.name %></td>
+        <td><%= c.level_name ? c.level_name : '—' %></td>
         <td><%= c.teacher_name || '—' %></td>
         <td><%= c.student_count %></td>
         <td>

@@ -1,27 +1,54 @@
-<div class="login-wrap">
-  <div class="login-card">
-    <h1>SchoolApp</h1>
-    <p class="login-sub">Attendance &amp; Results, done properly.</p>
-    <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
-    <form method="POST" action="/login">
-      <div class="field">
-        <label>Email</label>
-        <input type="email" name="email" required autofocus />
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" name="password" required />
-      </div>
-      <button class="btn" style="width:100%" type="submit">Log In</button>
-    </form>
-    <p style="text-align:center; margin-top:1rem; font-size:0.85rem;">
-      New school? <a href="/signup">Register here</a>
-    </p>
-    <div class="demo-hint">
-      <strong>Demo logins</strong> (after running the seed script):<br/>
-      School Admin — admin@brightfield.demo / admin123<br/>
-      Teacher — chinedu@brightfield.demo / teacher123<br/>
-      Platform Admin — owner@platform.com / owner123
+<% const s = (typeof school !== 'undefined') ? school : null; %>
+<div class="auth-split">
+  <div class="auth-visual"
+    <% if (s && s.has_login_image) { %>style="background-image: linear-gradient(160deg, rgba(18,23,58,0.55), rgba(18,23,58,0.88)), url('/branding/login-image/<%= s.id %>');"<% } %>>
+    <div class="auth-visual-inner">
+      <% if (s && s.has_logo) { %>
+        <img class="auth-logo" src="/branding/logo/<%= s.id %>" alt="<%= s.name %> logo" />
+      <% } else if (!s) { %>
+        <span class="brand-mark big">SA</span>
+      <% } %>
+      <h1><%= s ? s.name : 'SchoolApp' %></h1>
+      <p><%= s ? (s.login_tagline || 'Welcome back. Sign in to continue.') : 'Attendance, results and school fees, done properly.' %></p>
+      <% if (!s) { %>
+        <ul>
+          <li>Daily attendance in seconds</li>
+          <li>Broadsheets and report cards, automatically</li>
+          <li>Fee tracking and receipts for your bursar</li>
+        </ul>
+      <% } %>
+    </div>
+    <div class="auth-visual-foot"><%= s ? 'Powered by SchoolApp' : '' %></div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="auth-card">
+      <h2>Sign in</h2>
+      <p class="muted"><%= s ? 'Use the email and password your school gave you.' : 'Welcome back. Enter your details to continue.' %></p>
+      <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+      <form method="POST" action="/login">
+        <input type="hidden" name="school_slug" value="<%= s ? s.slug : '' %>" />
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required autofocus />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" required />
+        </div>
+        <button class="btn btn-gold" style="width:100%; padding:0.7rem;" type="submit">Log In</button>
+      </form>
+      <% if (!s) { %>
+        <p style="margin-top:1.2rem; font-size:0.9rem;">New school? <a href="/signup">Register here</a></p>
+        <details>
+          <summary>Demo accounts</summary>
+          <p style="line-height:1.7;">
+            School Admin: admin@brightfield.demo / admin123<br />
+            Teacher: chinedu@brightfield.demo / teacher123<br />
+            Platform Admin: owner@platform.com / owner123
+          </p>
+        </details>
+      <% } %>
     </div>
   </div>
 </div>

@@ -1,26 +1,61 @@
 <div class="toolbar"><h2>Branding</h2></div>
-<p class="muted">Your logo appears in the navigation bar and on printed/downloaded report cards.</p>
+<p class="muted">Your logo appears in the navigation bar and on report cards. Your login page image and welcome message greet your staff and parents every time they sign in.</p>
 
 <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
 <% if (saved) { %><div class="success-msg">Saved.</div><% } %>
 
-<div class="card" style="max-width:560px;">
-  <h3>Current Logo</h3>
-  <% if (school.logo_data) { %>
+<div class="card" style="max-width:640px;">
+  <h3>Your school's login page</h3>
+  <p class="muted">Share this link with your staff instead of the general login page — it shows your logo, image and message.</p>
+  <div class="copy-row">
+    <input type="text" readonly value="<%= loginUrl %>" onclick="this.select()" />
+    <a class="btn btn-sm btn-outline" href="<%= loginUrl %>" target="_blank" rel="noopener">Open</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <h3>Logo</h3>
+  <p class="muted">Shown in the navigation bar and on report cards.</p>
+  <% if (school.has_logo) { %>
     <img src="/branding/logo/<%= school.id %>" alt="School logo" style="max-height:100px; max-width:260px; display:block; margin-bottom:1rem; border:1px solid var(--line); border-radius:8px; padding:0.5rem;" />
     <form method="POST" action="/setup/branding/remove-logo" onsubmit="return confirm('Remove your logo?')">
       <button class="btn btn-sm btn-danger" type="submit">Remove Logo</button>
     </form>
   <% } else { %>
-    <p class="muted">No logo uploaded yet — report cards will show your school name as plain text.</p>
+    <p class="muted">No logo uploaded yet — your name will show as plain text instead.</p>
   <% } %>
+</div>
 
-  <h3 style="margin-top:1.5rem;">Upload New Logo</h3>
+<div class="card" style="max-width:640px;">
+  <h3>Login Page Image &amp; Message</h3>
+  <p class="muted">A wide photo works best (your building, students, or a school event). Shown behind your welcome message on the login page.</p>
+  <% if (hasLoginImage) { %>
+    <div class="login-preview">
+      <img src="/branding/login-image/<%= school.id %>" alt="Login page image" />
+    </div>
+    <form method="POST" action="/setup/branding/remove-login-image" onsubmit="return confirm('Remove this image?')" style="margin-top:0.6rem;">
+      <button class="btn btn-sm btn-danger" type="submit">Remove Image</button>
+    </form>
+  <% } else { %>
+    <p class="muted">No image uploaded yet — a plain colour background is used.</p>
+  <% } %>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <h3>Upload / Update</h3>
   <form method="POST" action="/setup/branding" enctype="multipart/form-data">
     <div class="field">
       <label>Logo file (PNG, JPG, WEBP or SVG — under 1MB)</label>
       <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
     </div>
-    <button class="btn btn-gold" type="submit">Upload</button>
+    <div class="field">
+      <label>Login page image (PNG, JPG or WEBP — under 2MB)</label>
+      <input type="file" name="login_image" accept="image/png,image/jpeg,image/webp" />
+    </div>
+    <div class="field">
+      <label>Welcome message on login page (optional)</label>
+      <input type="text" name="login_tagline" maxlength="160" placeholder="e.g. Welcome to Brightfield Academy" value="<%= school.login_tagline || '' %>" />
+    </div>
+    <button class="btn btn-gold" type="submit">Save</button>
   </form>
 </div>

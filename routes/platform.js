@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
+const { uniqueSlug } = require("../utils/slug");
 const router = express.Router();
 
 router.use(requireRole("platform_admin"));
@@ -35,9 +36,10 @@ router.post(
     const days = parseInt(trial_days, 10) || 14;
     const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
+    const slug = await uniqueSlug(school_name, db);
     const schoolId = await db.insert(
-      "INSERT INTO schools (name, subscription_status, trial_ends_at) VALUES ($1, 'trial', $2) RETURNING id",
-      [school_name.trim(), trialEndsAt]
+      "INSERT INTO schools (name, slug, subscription_status, trial_ends_at) VALUES ($1, $2, 'trial', $3) RETURNING id",
+      [school_name.trim(), slug, trialEndsAt]
     );
     const hash = bcrypt.hashSync(password, 10);
     await db.run(

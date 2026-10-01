@@ -207,3 +207,44 @@ CREATE TABLE IF NOT EXISTS weight_groups (
   UNIQUE(school_id, group_name)
 );
 
+
+-- ===================== CLASS LEVELS (Nursery / Primary / JSS / SSS) =====================
+-- A level holds a subject list once; its sub-classes (arms) inherit it. "Streamed" levels
+-- (e.g. SSS) let each arm pick its own subset of the level's subjects instead.
+CREATE TABLE IF NOT EXISTS class_levels (
+  id SERIAL PRIMARY KEY,
+  school_id INTEGER NOT NULL REFERENCES schools(id),
+  name TEXT NOT NULL,
+  is_streamed BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- NULL level_id = legacy/standalone class (old behaviour, untouched)
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS level_id INTEGER REFERENCES class_levels(id);
+
+CREATE TABLE IF NOT EXISTS level_subjects (
+  id SERIAL PRIMARY KEY,
+  level_id INTEGER NOT NULL REFERENCES class_levels(id) ON DELETE CASCADE,
+  subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  UNIQUE(level_id, subject_id)
+);
+
+-- Only used for streamed levels: which of the level's subjects this specific arm takes
+CREATE TABLE IF NOT EXISTS class_subjects (
+  id SERIAL PRIMARY KEY,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  UNIQUE(class_id, subject_id)
+);
+
+-- ===================== SCHOOL-BRANDED LOGIN PAGE =====================
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS slug TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_schools_slug ON schools(slug);
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS login_tagline TEXT;
+
+-- Kept in its own table so big images never get dragged along by "SELECT * FROM schools"
+CREATE TABLE IF NOT EXISTS school_login_images (
+  school_id INTEGER PRIMARY KEY REFERENCES schools(id),
+  image_data TEXT NOT NULL,
+  image_mime TEXT NOT NULL
+);

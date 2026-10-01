@@ -1,6 +1,7 @@
 <div class="toolbar"><h2>Teachers</h2></div>
 
 <% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+<% if (notice) { %><div class="success-msg"><%= notice %></div><% } %>
 
 <div class="card">
   <h3>Add a new teacher</h3>
@@ -45,6 +46,7 @@
 
 <div class="card">
   <h3>Assign Subject to Teacher</h3>
+  <p class="muted">Pick "All &lt;level&gt; classes" to assign a teacher across every sub-class in a level in one go — e.g. one click covers JSS 1A, 1B and 1C.</p>
   <form method="POST" action="/setup/assignments" class="form-row">
     <div class="field">
       <label>Teacher</label>
@@ -55,6 +57,7 @@
     <div class="field">
       <label>Class</label>
       <select name="class_id" required>
+        <% levels.forEach(l => { %><option value="level:<%= l.id %>">All <%= l.name %> classes</option><% }) %>
         <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
       </select>
     </div>

@@ -7,11 +7,12 @@ const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const { friendlyDelete } = require("../utils/friendlyDelete");
 const { getGradeBands } = require("../utils/grading");
+const { getClassSubjects } = require("../utils/subjects");
 const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 1024 * 1024 }, // 1MB - logos should be small; keeps DB storage cheap
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max per image (logos are additionally capped at 1MB below)
   fileFilter: (req, file, cb) => {
     const ok = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"].includes(file.mimetype);
     cb(ok ? null : new Error("Please upload a PNG, JPG, WEBP or SVG image."), ok);
@@ -38,22 +39,29 @@ router.get(
   "/classes",
   asyncHandler(async (req, res) => {
     const classes = await db.all(
-      `SELECT c.*, u.name as teacher_name, (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) as student_count
+      `SELECT c.*, u.name as teacher_name, l.name as level_name, (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) as student_count
        FROM classes c LEFT JOIN users u ON u.id = c.form_teacher_id
+       LEFT JOIN class_levels l ON l.id = c.level_id
        WHERE c.school_id = $1 ORDER BY c.name`,
       [schoolId(req)]
     );
     const teachers = await db.all("SELECT * FROM users WHERE school_id = $1 AND role = 'teacher'", [schoolId(req)]);
-    res.render("setup/classes", { title: "Classes", classes, teachers, error: req.query.error || null });
+    const levels = await db.all("SELECT * FROM class_levels WHERE school_id = $1 ORDER BY sort_order, id", [schoolId(req)]);
+    res.render("setup/classes", { title: "Classes", classes, teachers, levels, error: req.query.error || null });
   })
 );
 
 router.post(
   "/classes",
   asyncHandler(async (req, res) => {
-    const { name, form_teacher_id } = req.body;
-    await db.run("INSERT INTO classes (school_id, name, form_teacher_id) VALUES ($1, $2, $3)", [
-      schoolId(req), name.trim(), form_teacher_id || null,
+    const { name, form_teacher_id, level_id } = req.body;
+    let levelId = null;
+    if (level_id) {
+      const level = await db.get("SELECT id FROM class_levels WHERE id = $1 AND school_id = $2", [level_id, schoolId(req)]);
+      levelId = level ? level.id : null;
+    }
+    await db.run("INSERT INTO classes (school_id, name, form_teacher_id, level_id) VALUES ($1, $2, $3, $4)", [
+      schoolId(req), name.trim(), form_teacher_id || null, levelId,
     ]);
     res.redirect("/setup/classes");
   })
@@ -67,6 +75,184 @@ router.delete(
       [req.params.id, schoolId(req)],
       res, "/setup/classes", "class"
     );
+  })
+);
+
+// ===================== LEVELS (Nursery / Primary / JSS / SSS) & SUB-CLASSES =====================
+router.get(
+  "/levels",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    const levels = await db.all("SELECT * FROM class_levels WHERE school_id = $1 ORDER BY sort_order, id", [sid]);
+    const subjects = await db.all("SELECT * FROM subjects WHERE school_id = $1 ORDER BY name", [sid]);
+    const arms = await db.all(
+      `SELECT c.*, u.name AS teacher_name, (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS student_count
+       FROM classes c LEFT JOIN users u ON u.id = c.form_teacher_id
+       WHERE c.school_id = $1 ORDER BY c.name`,
+      [sid]
+    );
+    const ls = await db.all(
+      "SELECT ls.level_id, ls.subject_id FROM level_subjects ls JOIN class_levels l ON l.id = ls.level_id WHERE l.school_id = $1",
+      [sid]
+    );
+    const cs = await db.all(
+      "SELECT cs.class_id, cs.subject_id FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = $1",
+      [sid]
+    );
+    const levelSubjectMap = {};
+    ls.forEach((r) => (levelSubjectMap[r.level_id] = levelSubjectMap[r.level_id] || []).push(r.subject_id));
+    const classSubjectMap = {};
+    cs.forEach((r) => (classSubjectMap[r.class_id] = classSubjectMap[r.class_id] || []).push(r.subject_id));
+
+    res.render("setup/levels", {
+      title: "Levels & Classes", levels, subjects, arms, levelSubjectMap, classSubjectMap,
+      error: req.query.error || null, notice: req.query.notice || null,
+    });
+  })
+);
+
+function backToLevels(res, kind, msg) {
+  return res.redirect("/setup/levels?" + kind + "=" + encodeURIComponent(msg));
+}
+
+// One click: create the standard Nigerian school levels (SSS is streamed)
+router.post(
+  "/levels/quickstart",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    let order = Number((await db.get("SELECT COALESCE(MAX(sort_order), 0) AS m FROM class_levels WHERE school_id = $1", [sid])).m);
+    for (const name of ["Nursery", "Primary", "JSS", "SSS"]) {
+      const exists = await db.get("SELECT id FROM class_levels WHERE school_id = $1 AND LOWER(name) = LOWER($2)", [sid, name]);
+      if (exists) continue;
+      await db.run("INSERT INTO class_levels (school_id, name, is_streamed, sort_order) VALUES ($1, $2, $3, $4)", [sid, name, name === "SSS", ++order]);
+    }
+    backToLevels(res, "notice", "Standard levels created: Nursery, Primary, JSS and SSS (SSS lets each sub-class pick its own subjects).");
+  })
+);
+
+router.post(
+  "/levels",
+  asyncHandler(async (req, res) => {
+    const name = (req.body.name || "").trim();
+    if (!name) return backToLevels(res, "error", "Give the level a name, e.g. JSS or SSS.");
+    const dup = await db.get("SELECT id FROM class_levels WHERE school_id = $1 AND LOWER(name) = LOWER($2)", [schoolId(req), name]);
+    if (dup) return backToLevels(res, "error", `A level called "${name}" already exists.`);
+    const m = await db.get("SELECT COALESCE(MAX(sort_order), 0) AS m FROM class_levels WHERE school_id = $1", [schoolId(req)]);
+    await db.run("INSERT INTO class_levels (school_id, name, is_streamed, sort_order) VALUES ($1, $2, $3, $4)", [
+      schoolId(req), name, req.body.is_streamed === "on", Number(m.m) + 1,
+    ]);
+    backToLevels(res, "notice", `Level "${name}" created. Now tick its subjects and add its sub-classes.`);
+  })
+);
+
+router.delete(
+  "/levels/:id",
+  asyncHandler(async (req, res) => {
+    const arms = await db.get("SELECT COUNT(*) AS c FROM classes WHERE level_id = $1 AND school_id = $2", [req.params.id, schoolId(req)]);
+    if (Number(arms.c) > 0) return backToLevels(res, "error", "This level still has sub-classes. Remove or move them first.");
+    await friendlyDelete("DELETE FROM class_levels WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)], res, "/setup/levels", "level");
+  })
+);
+
+// Subjects for a whole level - entered once, inherited by every sub-class
+router.post(
+  "/levels/:id/subjects",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    const level = await db.get("SELECT * FROM class_levels WHERE id = $1 AND school_id = $2", [req.params.id, sid]);
+    if (!level) return backToLevels(res, "error", "Level not found.");
+    const wanted = [].concat(req.body.subject_ids || []).map(Number).filter(Boolean);
+    const valid = wanted.length
+      ? (await db.all("SELECT id FROM subjects WHERE school_id = $1 AND id = ANY($2::int[])", [sid, wanted])).map((r) => r.id)
+      : [];
+    await db.run("DELETE FROM level_subjects WHERE level_id = $1", [level.id]);
+    for (const subjectId of valid) {
+      await db.run("INSERT INTO level_subjects (level_id, subject_id) VALUES ($1, $2)", [level.id, subjectId]);
+    }
+    // a streamed arm can't keep a subject the level no longer offers
+    await db.run(
+      "DELETE FROM class_subjects WHERE class_id IN (SELECT id FROM classes WHERE level_id = $1) AND subject_id <> ALL($2::int[])",
+      [level.id, valid]
+    );
+    backToLevels(res, "notice", `Subjects saved for ${level.name}.`);
+  })
+);
+
+router.post(
+  "/levels/:id/arms",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    const level = await db.get("SELECT * FROM class_levels WHERE id = $1 AND school_id = $2", [req.params.id, sid]);
+    if (!level) return backToLevels(res, "error", "Level not found.");
+    const name = (req.body.name || "").trim();
+    if (!name) return backToLevels(res, "error", "Give the sub-class a name, e.g. JSS 1A.");
+    const dup = await db.get("SELECT id FROM classes WHERE school_id = $1 AND LOWER(name) = LOWER($2)", [sid, name]);
+    if (dup) return backToLevels(res, "error", `A class called "${name}" already exists.`);
+    await db.run("INSERT INTO classes (school_id, name, level_id) VALUES ($1, $2, $3)", [sid, name, level.id]);
+    backToLevels(res, "notice", `${name} added under ${level.name}.`);
+  })
+);
+
+router.delete(
+  "/levels/arms/:id",
+  asyncHandler(async (req, res) => {
+    await friendlyDelete("DELETE FROM classes WHERE id = $1 AND school_id = $2", [req.params.id, schoolId(req)], res, "/setup/levels", "class");
+  })
+);
+
+// Streamed levels only (e.g. SSS): the subset of the level's subjects this one sub-class takes
+router.post(
+  "/classes/:id/subjects",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    const klass = await db.get(
+      "SELECT c.*, l.is_streamed FROM classes c JOIN class_levels l ON l.id = c.level_id WHERE c.id = $1 AND c.school_id = $2",
+      [req.params.id, sid]
+    );
+    if (!klass) return backToLevels(res, "error", "Class not found, or it isn't under a level.");
+    if (!klass.is_streamed) return backToLevels(res, "error", "This class inherits its level's subjects automatically.");
+    const wanted = [].concat(req.body.subject_ids || []).map(Number).filter(Boolean);
+    const valid = wanted.length
+      ? (await db.all("SELECT subject_id FROM level_subjects WHERE level_id = $1 AND subject_id = ANY($2::int[])", [klass.level_id, wanted])).map((r) => r.subject_id)
+      : [];
+    await db.run("DELETE FROM class_subjects WHERE class_id = $1", [klass.id]);
+    for (const subjectId of valid) {
+      await db.run("INSERT INTO class_subjects (class_id, subject_id) VALUES ($1, $2)", [klass.id, subjectId]);
+    }
+    backToLevels(res, "notice", `Subjects saved for ${klass.name}.`);
+  })
+);
+
+// Move an existing standalone class under a level. Its current subjects are carried over so nothing disappears.
+router.post(
+  "/classes/:id/level",
+  asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
+    const klass = await db.get("SELECT * FROM classes WHERE id = $1 AND school_id = $2", [req.params.id, sid]);
+    if (!klass) return backToLevels(res, "error", "Class not found.");
+    if (!req.body.level_id) {
+      await db.run("UPDATE classes SET level_id = NULL WHERE id = $1", [klass.id]);
+      return backToLevels(res, "notice", `${klass.name} is now a standalone class.`);
+    }
+    const level = await db.get("SELECT * FROM class_levels WHERE id = $1 AND school_id = $2", [req.body.level_id, sid]);
+    if (!level) return backToLevels(res, "error", "Level not found.");
+
+    const current = await getClassSubjects(klass.id); // read BEFORE moving it
+    await db.run("UPDATE classes SET level_id = $1 WHERE id = $2", [level.id, klass.id]);
+    if (!level.is_streamed) {
+      const has = await db.get("SELECT COUNT(*) AS c FROM level_subjects WHERE level_id = $1", [level.id]);
+      if (Number(has.c) === 0) {
+        for (const sub of current) {
+          await db.run("INSERT INTO level_subjects (level_id, subject_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [level.id, sub.id]);
+        }
+      }
+    } else {
+      for (const sub of current) {
+        await db.run("INSERT INTO level_subjects (level_id, subject_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [level.id, sub.id]);
+        await db.run("INSERT INTO class_subjects (class_id, subject_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [klass.id, sub.id]);
+      }
+    }
+    backToLevels(res, "notice", `${klass.name} moved under ${level.name}.`);
   })
 );
 
@@ -265,7 +451,11 @@ router.get(
        WHERE ta.school_id = $1 ORDER BY u.name`,
       [schoolId(req)]
     );
-    res.render("setup/teachers", { title: "Teachers", teachers, classes, subjects, assignments, error: req.query.error || null });
+    const levels = await db.all("SELECT * FROM class_levels WHERE school_id = $1 ORDER BY sort_order, id", [schoolId(req)]);
+    res.render("setup/teachers", {
+      title: "Teachers", teachers, classes, subjects, assignments, levels,
+      error: req.query.error || null, notice: req.query.notice || null,
+    });
   })
 );
 
@@ -331,15 +521,43 @@ router.delete(
 router.post(
   "/assignments",
   asyncHandler(async (req, res) => {
+    const sid = schoolId(req);
     const { teacher_id, class_id, subject_id } = req.body;
-    try {
-      await db.run("INSERT INTO teacher_assignments (school_id, teacher_id, class_id, subject_id) VALUES ($1, $2, $3, $4)", [
-        schoolId(req), teacher_id, class_id, subject_id,
-      ]);
-    } catch (e) {
-      /* ignore duplicate assignment (unique constraint) */
+    const back = (kind, msg) => res.redirect("/setup/teachers?" + kind + "=" + encodeURIComponent(msg));
+    if (!teacher_id || !class_id || !subject_id) return back("error", "Pick a teacher, a class and a subject.");
+
+    const teacher = await db.get("SELECT id FROM users WHERE id = $1 AND school_id = $2 AND role = 'teacher'", [teacher_id, sid]);
+    const subject = await db.get("SELECT id, name FROM subjects WHERE id = $1 AND school_id = $2", [subject_id, sid]);
+    if (!teacher || !subject) return back("error", "Teacher or subject not found.");
+
+    const insertSql =
+      "INSERT INTO teacher_assignments (school_id, teacher_id, class_id, subject_id) VALUES ($1, $2, $3, $4) ON CONFLICT (teacher_id, class_id, subject_id) DO NOTHING";
+
+    if (String(class_id).startsWith("level:")) {
+      const level = await db.get("SELECT * FROM class_levels WHERE id = $1 AND school_id = $2", [parseInt(class_id.split(":")[1], 10), sid]);
+      if (!level) return back("error", "Level not found.");
+      const arms = await db.all("SELECT id FROM classes WHERE school_id = $1 AND level_id = $2 ORDER BY name", [sid, level.id]);
+      let count = 0;
+      for (const arm of arms) {
+        const subs = await getClassSubjects(arm.id);
+        if (!subs.some((x) => x.id === subject.id)) continue;
+        await db.run(insertSql, [sid, teacher.id, arm.id, subject.id]);
+        count++;
+      }
+      if (count === 0) return back("error", `None of the ${level.name} classes take ${subject.name} yet. Tick it for ${level.name} under Levels & Classes first.`);
+      return back("notice", `${subject.name} assigned across ${count} ${level.name} class${count === 1 ? "" : "es"}.`);
     }
-    res.redirect("/setup/teachers");
+
+    const klass = await db.get("SELECT id, name, level_id FROM classes WHERE id = $1 AND school_id = $2", [class_id, sid]);
+    if (!klass) return back("error", "Class not found.");
+    if (klass.level_id) {
+      const subs = await getClassSubjects(klass.id);
+      if (!subs.some((x) => x.id === subject.id)) {
+        return back("error", `${klass.name} doesn't take ${subject.name}. Add it under Levels & Classes first.`);
+      }
+    }
+    await db.run(insertSql, [sid, teacher.id, klass.id, subject.id]);
+    back("notice", `${subject.name} assigned for ${klass.name}.`);
   })
 );
 
@@ -382,31 +600,55 @@ router.post(
   })
 );
 
-// ===================== BRANDING (logo upload) =====================
+// ===================== BRANDING (logo + branded login page) =====================
+const uploadBranding = upload.fields([
+  { name: "logo", maxCount: 1 },
+  { name: "login_image", maxCount: 1 },
+]);
+
 router.get(
   "/branding",
   asyncHandler(async (req, res) => {
-    const school = await db.get("SELECT * FROM schools WHERE id = $1", [schoolId(req)]);
-    res.render("setup/branding", { title: "Branding", school, error: req.query.error || null, saved: req.query.saved || null });
+    const school = await db.get(
+      "SELECT id, name, slug, login_tagline, (logo_data IS NOT NULL) AS has_logo FROM schools WHERE id = $1",
+      [schoolId(req)]
+    );
+    const img = await db.get("SELECT 1 AS x FROM school_login_images WHERE school_id = $1", [schoolId(req)]);
+    const loginUrl = `${req.protocol}://${req.get("host")}/s/${school.slug}`;
+    res.render("setup/branding", {
+      title: "Branding", school, hasLoginImage: !!img, loginUrl,
+      error: req.query.error || null, saved: req.query.saved || null,
+    });
   })
 );
 
 router.post(
   "/branding",
   (req, res, next) => {
-    upload.single("logo")(req, res, (err) => {
+    uploadBranding(req, res, (err) => {
       if (err) return res.redirect("/setup/branding?error=" + encodeURIComponent(err.message));
       next();
     });
   },
   asyncHandler(async (req, res) => {
-    const { primary_color } = req.body;
-    if (req.file) {
-      const base64 = req.file.buffer.toString("base64");
-      await db.run("UPDATE schools SET logo_data = $1, logo_mime = $2 WHERE id = $3", [base64, req.file.mimetype, schoolId(req)]);
+    const files = req.files || {};
+    const logo = files.logo && files.logo[0];
+    const loginImg = files.login_image && files.login_image[0];
+
+    if (logo) {
+      if (logo.size > 1024 * 1024) return res.redirect("/setup/branding?error=" + encodeURIComponent("Logo must be under 1MB."));
+      await db.run("UPDATE schools SET logo_data = $1, logo_mime = $2 WHERE id = $3", [logo.buffer.toString("base64"), logo.mimetype, schoolId(req)]);
     }
-    if (primary_color) {
-      await db.run("UPDATE schools SET primary_color = $1 WHERE id = $2", [primary_color, schoolId(req)]);
+    if (loginImg) {
+      await db.run(
+        `INSERT INTO school_login_images (school_id, image_data, image_mime) VALUES ($1, $2, $3)
+         ON CONFLICT (school_id) DO UPDATE SET image_data = EXCLUDED.image_data, image_mime = EXCLUDED.image_mime`,
+        [schoolId(req), loginImg.buffer.toString("base64"), loginImg.mimetype]
+      );
+    }
+    if (typeof req.body.login_tagline === "string") {
+      const tagline = req.body.login_tagline.trim().slice(0, 160);
+      await db.run("UPDATE schools SET login_tagline = $1 WHERE id = $2", [tagline || null, schoolId(req)]);
     }
     res.redirect("/setup/branding?saved=1");
   })
@@ -416,6 +658,14 @@ router.post(
   "/branding/remove-logo",
   asyncHandler(async (req, res) => {
     await db.run("UPDATE schools SET logo_data = NULL, logo_mime = NULL WHERE id = $1", [schoolId(req)]);
+    res.redirect("/setup/branding?saved=1");
+  })
+);
+
+router.post(
+  "/branding/remove-login-image",
+  asyncHandler(async (req, res) => {
+    await db.run("DELETE FROM school_login_images WHERE school_id = $1", [schoolId(req)]);
     res.redirect("/setup/branding?saved=1");
   })
 );

@@ -1,0 +1,161 @@
+<div class="toolbar"><h2>Levels &amp; Classes</h2></div>
+<p class="muted">
+  Set up your school in two layers. A <strong>level</strong> (Nursery, Primary, JSS, SSS) holds the subject list <em>once</em>.
+  Every <strong>sub-class</strong> under it (JSS 1A, JSS 1B, JSS 1C…) gets those subjects automatically.
+</p>
+
+<% if (error) { %><div class="error-msg"><%= error %></div><% } %>
+<% if (notice) { %><div class="success-msg"><%= notice %></div><% } %>
+
+<% if (subjects.length === 0) { %>
+  <div class="error-msg">You haven't added any subjects yet. <a href="/setup/subjects">Add your subjects first</a>, then come back to tick them for each level.</div>
+<% } %>
+
+<% if (levels.length === 0) { %>
+  <div class="card">
+    <h3>Start here</h3>
+    <p class="muted">Most schools use Nursery, Primary, JSS and SSS. Create them in one click, or add your own levels below.</p>
+    <form method="POST" action="/setup/levels/quickstart">
+      <button class="btn btn-gold" type="submit">Create Nursery, Primary, JSS &amp; SSS</button>
+    </form>
+  </div>
+<% } %>
+
+<div class="card" style="max-width:720px;">
+  <h3>Add a level</h3>
+  <form method="POST" action="/setup/levels">
+    <div class="form-row">
+      <div class="field">
+        <label>Level name</label>
+        <input type="text" name="name" placeholder="e.g. JSS" required />
+      </div>
+      <div class="field" style="flex:0; align-self:flex-end;">
+        <button class="btn btn-gold" type="submit">Add Level</button>
+      </div>
+    </div>
+    <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500; color:var(--text);">
+      <input type="checkbox" name="is_streamed" style="width:auto; margin-top:0.2rem;" />
+      <span>Each sub-class chooses its own subjects <span class="muted">(tick this for SSS, where Art, Science and Commercial classes take different subjects. Leave it unticked for JSS, Primary and Nursery, where everyone takes all subjects.)</span></span>
+    </label>
+  </form>
+</div>
+
+<% levels.forEach(level => {
+     const levelSubIds = levelSubjectMap[level.id] || [];
+     const levelArms = arms.filter(a => a.level_id === level.id);
+     const poolSubjects = subjects.filter(s => levelSubIds.includes(s.id));
+%>
+<div class="card level-card">
+  <div class="level-head">
+    <div>
+      <h3><%= level.name %>
+        <% if (level.is_streamed) { %><span class="badge badge-gold">Sub-classes pick their own subjects</span>
+        <% } else { %><span class="badge badge-navy">All sub-classes take all subjects</span><% } %>
+      </h3>
+    </div>
+    <form method="POST" action="/setup/levels/<%= level.id %>?_method=DELETE" onsubmit="return confirm('Delete the <%= level.name %> level?')">
+      <button class="btn btn-sm btn-danger" type="submit">Delete level</button>
+    </form>
+  </div>
+
+  <div class="section-label"><%= level.is_streamed ? 'Subject pool for ' + level.name + ' (sub-classes choose from these)' : 'Subjects for all of ' + level.name %></div>
+  <% if (subjects.length === 0) { %>
+    <p class="muted">No subjects to choose from yet.</p>
+  <% } else { %>
+    <form method="POST" action="/setup/levels/<%= level.id %>/subjects">
+      <div class="chip-grid">
+        <% subjects.forEach(sub => { %>
+          <label><input type="checkbox" name="subject_ids" value="<%= sub.id %>" <%= levelSubIds.includes(sub.id) ? 'checked' : '' %> /> <%= sub.name %></label>
+        <% }) %>
+      </div>
+      <button class="btn btn-sm btn-gold" type="submit">Save <%= level.name %> subjects</button>
+    </form>
+  <% } %>
+
+  <div class="section-label">Sub-classes</div>
+  <% if (levelArms.length === 0) { %>
+    <p class="muted">No sub-classes yet. Add the first one below (e.g. <%= level.name %> 1A).</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Sub-class</th><th>Students</th>
+          <th><%= level.is_streamed ? 'Subjects taken' : 'Subjects' %></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      <% levelArms.forEach(a => { const picked = classSubjectMap[a.id] || []; %>
+        <tr>
+          <td><strong><%= a.name %></strong></td>
+          <td><%= a.student_count %></td>
+          <td>
+            <% if (level.is_streamed) { %>
+              <details class="inline">
+                <summary><%= picked.length %> of <%= poolSubjects.length %> chosen</summary>
+                <% if (poolSubjects.length === 0) { %>
+                  <p class="muted" style="margin:0.3rem 0;">Tick subjects for the <%= level.name %> pool above first.</p>
+                <% } else { %>
+                  <form method="POST" action="/setup/classes/<%= a.id %>/subjects">
+                    <div class="chip-grid">
+                      <% poolSubjects.forEach(sub => { %>
+                        <label><input type="checkbox" name="subject_ids" value="<%= sub.id %>" <%= picked.includes(sub.id) ? 'checked' : '' %> /> <%= sub.name %></label>
+                      <% }) %>
+                    </div>
+                    <button class="btn btn-sm btn-gold" type="submit">Save for <%= a.name %></button>
+                  </form>
+                <% } %>
+              </details>
+            <% } else { %>
+              <span class="muted">Inherits <%= levelSubIds.length %> from <%= level.name %></span>
+            <% } %>
+          </td>
+          <td>
+            <form method="POST" action="/setup/levels/arms/<%= a.id %>?_method=DELETE" style="display:inline" onsubmit="return confirm('Remove <%= a.name %>?')">
+              <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <form method="POST" action="/setup/levels/<%= level.id %>/arms" class="form-row" style="margin-top:0.8rem;">
+    <div class="field" style="max-width:260px;">
+      <label>Add a sub-class</label>
+      <input type="text" name="name" placeholder="<%= level.name %> 1A" required />
+    </div>
+    <div class="field" style="flex:0; align-self:flex-end;">
+      <button class="btn btn-sm btn-outline" type="submit">+ Add</button>
+    </div>
+  </form>
+</div>
+<% }) %>
+
+<% const loose = arms.filter(a => !a.level_id); %>
+<% if (loose.length > 0 && levels.length > 0) { %>
+<div class="card">
+  <h3>Classes not under a level yet</h3>
+  <p class="muted">These were created before levels existed and still work as before. Move each under a level to give it that level's subjects. Its current subjects are carried over so nothing disappears.</p>
+  <table>
+    <thead><tr><th>Class</th><th>Students</th><th>Move under</th></tr></thead>
+    <tbody>
+    <% loose.forEach(a => { %>
+      <tr>
+        <td><%= a.name %></td>
+        <td><%= a.student_count %></td>
+        <td>
+          <form method="POST" action="/setup/classes/<%= a.id %>/level" class="form-row" style="margin:0; gap:0.5rem; flex-wrap:nowrap;">
+            <select name="level_id" style="max-width:200px;">
+              <% levels.forEach(l => { %><option value="<%= l.id %>"><%= l.name %></option><% }) %>
+            </select>
+            <button class="btn btn-sm btn-outline" type="submit">Move</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>

@@ -4,6 +4,7 @@ const db = require("../db");
 const { requireRole } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const { buildBroadsheet, gradeFor, getGradeBands, getWeightGroups, computeWeightedTotal } = require("../utils/grading");
+const { getClassSubjects } = require("../utils/subjects");
 const router = express.Router();
 
 async function getActiveTerm(schoolId) {
@@ -13,12 +14,7 @@ async function getActiveTerm(schoolId) {
 async function computeBroadsheetData(schoolId, classId, termId) {
   const klass = await db.get("SELECT * FROM classes WHERE id = $1", [classId]);
   const students = await db.all("SELECT * FROM students WHERE class_id = $1 ORDER BY full_name", [classId]);
-  const subjects = await db.all(
-    `SELECT DISTINCT s.* FROM subjects s
-     JOIN teacher_assignments ta ON ta.subject_id = s.id
-     WHERE ta.class_id = $1 ORDER BY s.name`,
-    [classId]
-  );
+  const subjects = await getClassSubjects(classId);
 
   const components = await db.all("SELECT * FROM score_components WHERE school_id = $1", [schoolId]);
   const weightGroups = await getWeightGroups(schoolId);
